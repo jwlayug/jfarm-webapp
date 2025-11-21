@@ -50,31 +50,31 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentPage, onNav
 
   return (
     <>
-      {/* Mobile Overlay */}
+      {/* Mobile/Tablet Overlay - High Z-index for Fold cover screen */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden backdrop-blur-sm transition-opacity"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       <aside className={`
-        fixed inset-y-0 left-0 z-30 w-64 bg-sage-600 text-white transform transition-transform duration-300 ease-in-out
-        lg:relative lg:translate-x-0 flex flex-col shadow-xl
+        fixed inset-y-0 left-0 z-50 w-64 bg-sage-600 text-white transform transition-transform duration-300 ease-in-out shadow-2xl
+        lg:relative lg:translate-x-0 flex flex-col
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="flex items-center justify-between px-6 py-5 h-20 border-b border-sage-500">
+        <div className="flex items-center justify-between px-6 py-5 h-20 border-b border-sage-500 shrink-0">
           <div className="flex items-center gap-3 font-bold text-2xl tracking-tight">
              {/* Logo Icon */}
-             <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm text-sage-600">
+             <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm text-sage-600 shrink-0">
                <Sprout size={22} />
              </div>
              <div className="flex flex-col leading-none">
-                <span className="text-white text-xl">JFarm</span>
-                <span className="text-[9px] text-sage-200 font-normal tracking-wide uppercase mt-0.5">Sugarcane Management</span>
+                <span className="text-white text-xl truncate">JFarm</span>
+                <span className="text-[9px] text-sage-200 font-normal tracking-wide uppercase mt-0.5 whitespace-nowrap">Sugarcane Management</span>
              </div>
           </div>
-          <button onClick={() => setIsOpen(false)} className="lg:hidden text-sage-200 hover:text-white">
+          <button onClick={() => setIsOpen(false)} className="lg:hidden text-sage-200 hover:text-white p-1">
             <X size={24} />
           </button>
         </div>
@@ -88,23 +88,30 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentPage, onNav
                 active={currentPage === item.label}
                 onClick={() => {
                   onNavigate(item.label);
-                  setIsOpen(false);
+                  // Close sidebar on mobile selection
+                  if (window.innerWidth < 1024) {
+                    setIsOpen(false);
+                  }
                 }}
               />
             ))}
           </div>
           
-          <div className="mx-6 my-4 border-t border-sage-500"></div>
+          <div className="mx-6 my-4 border-t border-sage-500 shrink-0"></div>
           
-          <SidebarItem 
-            icon={Calculator} 
-            label="Calculator" 
-            active={currentPage === 'Calculator'}
-            onClick={() => {
-              onNavigate('Calculator');
-              setIsOpen(false);
-            }}
-          />
+          <div className="shrink-0 pb-safe">
+            <SidebarItem 
+              icon={Calculator} 
+              label="Calculator" 
+              active={currentPage === 'Calculator'}
+              onClick={() => {
+                onNavigate('Calculator');
+                if (window.innerWidth < 1024) {
+                  setIsOpen(false);
+                }
+              }}
+            />
+          </div>
         </div>
       </aside>
     </>

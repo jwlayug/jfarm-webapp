@@ -62,6 +62,7 @@ export interface Group {
 export interface Travel {
   id: string;
   name: string;
+  date?: string; // ISO Date YYYY-MM-DD
   land: string;
   driver: string; // Employee ID
   driverTip: number;

@@ -11,12 +11,25 @@ const generalExpenses = [
 
 const Expenses: React.FC = () => {
   const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredExpenses = generalExpenses.filter(exp => 
       exp.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       exp.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredExpenses.length / entriesPerPage);
+  const indexOfLastItem = currentPage * entriesPerPage;
+  const indexOfFirstItem = indexOfLastItem - entriesPerPage;
+  const currentItems = filteredExpenses.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+        setCurrentPage(page);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -37,7 +50,7 @@ const Expenses: React.FC = () => {
                 <span>Show</span>
                 <select 
                     value={entriesPerPage}
-                    onChange={(e) => setEntriesPerPage(Number(e.target.value))}
+                    onChange={(e) => { setEntriesPerPage(Number(e.target.value)); setCurrentPage(1); }}
                     className="bg-sage-50 border border-sage-200 rounded px-2 py-1 focus:outline-none focus:border-sage-400 text-sage-700 text-xs"
                 >
                     <option value={10}>10</option>
@@ -51,7 +64,7 @@ const Expenses: React.FC = () => {
                 <input 
                     type="text" 
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                     className="pl-16 pr-4 py-1.5 border border-sage-200 rounded-lg text-sm focus:outline-none focus:border-sage-400 w-full sm:w-64"
                 />
             </div>
@@ -83,7 +96,7 @@ const Expenses: React.FC = () => {
                 </tr>
             </thead>
             <tbody className="divide-y divide-sage-100">
-                {filteredExpenses.slice(0, entriesPerPage).map((exp) => (
+                {currentItems.map((exp) => (
                 <tr key={exp.id} className="hover:bg-sage-50 transition-colors">
                     <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -107,13 +120,34 @@ const Expenses: React.FC = () => {
          {/* Pagination Footer */}
         <div className="p-4 border-t border-sage-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm text-sage-500">
             <div>
-                Showing 1 to {Math.min(filteredExpenses.length, entriesPerPage)} of {filteredExpenses.length} entries
+                Showing {filteredExpenses.length > 0 ? indexOfFirstItem + 1 : 0} to {Math.min(indexOfLastItem, filteredExpenses.length)} of {filteredExpenses.length} entries
             </div>
             <div className="flex gap-1">
-                <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs disabled:opacity-50">Previous</button>
-                <button className="px-3 py-1 bg-sage-600 text-white border border-sage-600 rounded text-xs">1</button>
-                <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">2</button>
-                <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">Next</button>
+                <button 
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Previous
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button 
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        className={`px-3 py-1 border rounded text-xs ${currentPage === page ? 'bg-sage-600 text-white border-sage-600' : 'border-sage-200 hover:bg-sage-50'}`}
+                    >
+                        {page}
+                    </button>
+                ))}
+
+                <button 
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Next
+                </button>
             </div>
         </div>
       </div>

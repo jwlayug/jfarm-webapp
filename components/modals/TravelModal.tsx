@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Loader2, Map, Disc, Navigation, Plus, Trash2, User } from 'lucide-react';
+import { X, Save, Loader2, Map, Disc, Navigation, Plus, Trash2, User, Calendar } from 'lucide-react';
 import { Travel, Employee, Land, Plate, Destination, Group } from '../../types';
 
 interface TravelModalProps {
@@ -28,6 +28,7 @@ const TravelModal: React.FC<TravelModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   
   // Form Fields
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [ticket, setTicket] = useState('');
   const [landId, setLandId] = useState('');
   const [plateId, setPlateId] = useState('');
@@ -49,6 +50,7 @@ const TravelModal: React.FC<TravelModalProps> = ({
   useEffect(() => {
     if (isOpen && group) {
       if (initialData) {
+        setDate(initialData.date || new Date().toISOString().split('T')[0]);
         setTicket(initialData.ticket || '');
         setLandId(initialData.land);
         setPlateId(initialData.plateNumber);
@@ -75,6 +77,7 @@ const TravelModal: React.FC<TravelModalProps> = ({
         setExpenses(initialData.expenses?.map(e => ({ name: e.name, amount: e.amount })) || []);
       } else {
         // New Travel
+        setDate(new Date().toISOString().split('T')[0]);
         setTicket('');
         setLandId('');
         setPlateId('');
@@ -139,6 +142,7 @@ const TravelModal: React.FC<TravelModalProps> = ({
 
       const travelData: Omit<Travel, 'id'> = {
         name: generatedName,
+        date,
         land: landId,
         driver: driverId,
         driverTip,
@@ -193,7 +197,16 @@ const TravelModal: React.FC<TravelModalProps> = ({
               <h3 className="text-sage-800 font-bold border-b border-sage-200 pb-2 mb-4 flex items-center gap-2">
                 <Map size={18} /> Logistics
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                 <div>
+                  <label className="block text-xs font-medium text-sage-600 mb-1">Travel Date *</label>
+                  <div className="relative">
+                     <input 
+                        type="date" value={date} onChange={e => setDate(e.target.value)} required
+                        className="w-full px-3 py-2 border border-sage-200 rounded-lg text-sm bg-white text-sage-800 focus:ring-2 focus:ring-sage-400 focus:outline-none"
+                     />
+                  </div>
+                </div>
                 <div>
                   <label className="block text-xs font-medium text-sage-600 mb-1">Land Source *</label>
                   <select 

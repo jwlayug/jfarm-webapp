@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { 
   FileText, Download, Users, Layers, Map, 
   Calendar, Filter, TrendingUp, TrendingDown, 
-  Loader2, CreditCard, DollarSign, ChevronUp, ChevronDown 
+  Loader2, CreditCard, DollarSign, ChevronUp, ChevronDown, Sprout 
 } from 'lucide-react';
 import { 
   Employee, Group, Travel, Land, 
@@ -45,6 +45,7 @@ const Summaries: React.FC = () => {
   // Table Controls
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // --- DATA FETCHING ---
   useEffect(() => {
@@ -81,6 +82,12 @@ const Summaries: React.FC = () => {
 
     fetchAllData();
   }, []);
+
+  // Reset pagination when tabs or filters change
+  useEffect(() => {
+      setCurrentPage(1);
+  }, [activeTab, selectedGroupId, selectedLandId, selectedDestId, selectedPlateId, selectedDriverId, searchQuery, entriesPerPage]);
+
 
   // --- HELPERS ---
   const getEmployeeName = (id: string) => employees.find(e => e.id === id)?.name || id;
@@ -170,9 +177,6 @@ const Summaries: React.FC = () => {
         } else if (emp.type === 'Driver') {
           if (travel.driver === emp.id) {
              daysWorked++;
-             // Driver Wage Calculation: (Base Wage - Tip)?? 
-             // Actually, commonly Driver Wage is Base Wage per trip. 
-             // Let's look up the driver config.
              const driverConfig = drivers.find(d => d.employeeId === emp.id);
              const baseWage = driverConfig?.wage || 0;
              totalWage += (baseWage - financials.driverTip);
@@ -207,7 +211,6 @@ const Summaries: React.FC = () => {
 
 
   // --- VIEW 2 & 3: GROUP / LAND SUMMARY DATA ---
-  // (Both share the same list of travels, just filtered differently)
   const travelSummaryData = useMemo(() => {
     return filteredTravels
       .filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase())) // Apply local table search
@@ -218,7 +221,7 @@ const Summaries: React.FC = () => {
          ...financials
        };
     });
-  }, [filteredTravels, groups, employees, searchQuery]); // Dependencies for financials calc
+  }, [filteredTravels, groups, employees, searchQuery]);
 
   // Aggregates for Group/Land View
   const travelAggregates = useMemo(() => {
@@ -231,17 +234,66 @@ const Summaries: React.FC = () => {
     }), { count: 0, tons: 0, income: 0, expenses: 0, net: 0 });
   }, [travelSummaryData]);
 
+  // --- PAGINATION UTILS ---
+  const getPaginatedData = (data: any[]) => {
+      const totalPages = Math.ceil(data.length / entriesPerPage);
+      const indexOfLastItem = currentPage * entriesPerPage;
+      const indexOfFirstItem = indexOfLastItem - entriesPerPage;
+      const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
+      return { currentItems, totalPages, indexOfFirstItem, indexOfLastItem };
+  };
+
+  const handlePageChange = (page: number, totalPages: number) => {
+      if (page >= 1 && page <= totalPages) {
+          setCurrentPage(page);
+      }
+  };
 
   // --- COMPONENT RENDERERS ---
 
   const SummaryCard = ({ label, value, colorClass, icon: Icon, subValue }: any) => (
     <div className={`p-6 rounded-2xl shadow-sm border transition-all duration-200 ${colorClass}`}>
        <div className="flex justify-between items-start mb-2">
-          <p className="text-xs font-bold uppercase tracking-wider opacity-70">{label}</p>
+          <p className="text-xs font-bold uppercase tracking-wider opacity-70 truncate">{label}</p>
           {Icon && <div className="p-2 rounded-lg bg-white/50"><Icon size={18} /></div>}
        </div>
-       <p className="text-3xl font-bold tracking-tight">{value}</p>
+       <p className="text-3xl font-bold tracking-tight truncate">{value}</p>
        {subValue && <p className="text-xs mt-1 opacity-70 font-medium">{subValue}</p>}
+    </div>
+  );
+
+  const PaginationControls = ({ totalItems, totalPages, indexOfFirstItem, indexOfLastItem }: any) => (
+    <div className="p-4 border-t border-sage-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm text-sage-500">
+        <div>
+            Showing {totalItems > 0 ? indexOfFirstItem + 1 : 0} to {Math.min(indexOfLastItem, totalItems)} of {totalItems} entries
+        </div>
+        <div className="flex gap-1">
+            <button 
+                onClick={() => handlePageChange(currentPage - 1, totalPages)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                Previous
+            </button>
+            
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button 
+                    key={page}
+                    onClick={() => handlePageChange(page, totalPages)}
+                    className={`px-3 py-1 border rounded text-xs ${currentPage === page ? 'bg-sage-600 text-white border-sage-600' : 'border-sage-200 hover:bg-sage-50'}`}
+                >
+                    {page}
+                </button>
+            ))}
+
+            <button 
+                onClick={() => handlePageChange(currentPage + 1, totalPages)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                Next
+            </button>
+        </div>
     </div>
   );
 
@@ -254,26 +306,28 @@ const Summaries: React.FC = () => {
           <p className="text-sage-500 text-sm">Comprehensive view of operations and finances.</p>
         </div>
 
-        {/* Custom Tab Navigation */}
-        <div className="bg-white p-1.5 rounded-xl border border-sage-100 shadow-sm inline-flex w-full md:w-auto">
-           {[
-             { id: 'employee', label: 'Employee Summary', icon: Users },
-             { id: 'group', label: 'Group Summary', icon: Layers },
-             { id: 'land', label: 'Land Summary', icon: Map },
-           ].map((tab) => (
-             <button
-                key={tab.id}
-                onClick={() => { setActiveTab(tab.id as TabType); setSearchQuery(''); }}
-                className={`flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all
-                  ${activeTab === tab.id 
-                    ? 'bg-sage-600 text-white shadow-md' 
-                    : 'text-sage-500 hover:bg-sage-50 hover:text-sage-700'}
-                `}
-             >
-               <tab.icon size={16} />
-               {tab.label}
-             </button>
-           ))}
+        {/* Custom Tab Navigation - Responsive scrollable container */}
+        <div className="overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="bg-white p-1.5 rounded-xl border border-sage-100 shadow-sm inline-flex w-full md:w-auto min-w-max">
+             {[
+               { id: 'employee', label: 'Employee Summary', icon: Users },
+               { id: 'group', label: 'Group Summary', icon: Layers },
+               { id: 'land', label: 'Land Summary', icon: Map },
+             ].map((tab) => (
+               <button
+                  key={tab.id}
+                  onClick={() => { setActiveTab(tab.id as TabType); setSearchQuery(''); }}
+                  className={`flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all whitespace-nowrap
+                    ${activeTab === tab.id 
+                      ? 'bg-sage-600 text-white shadow-md' 
+                      : 'text-sage-500 hover:bg-sage-50 hover:text-sage-700'}
+                  `}
+               >
+                 <tab.icon size={16} />
+                 {tab.label}
+               </button>
+             ))}
+          </div>
         </div>
       </div>
 
@@ -285,15 +339,17 @@ const Summaries: React.FC = () => {
       ) : (
         <>
           {/* --- FILTERS BAR (Dataset Control) --- */}
-          <div className="bg-white p-4 rounded-xl border border-sage-100 shadow-sm flex flex-wrap gap-4 items-center justify-between">
-             <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
-                <Filter size={16} className="text-sage-400 mr-1" />
+          <div className="bg-white p-4 rounded-xl border border-sage-100 shadow-sm flex flex-col lg:flex-row gap-4 justify-between">
+             <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full lg:w-auto">
+                <div className="flex items-center gap-1 text-sage-400 mb-1 sm:mb-0">
+                    <Filter size={16} />
+                </div>
                 
                 {/* Group Filter (Available on all tabs) */}
                 <select 
                   value={selectedGroupId} 
                   onChange={(e) => setSelectedGroupId(e.target.value)}
-                  className="px-3 py-2 bg-sage-50 border border-sage-200 rounded-lg text-sm font-medium text-sage-700 focus:outline-none focus:border-sage-400 hover:border-sage-300 transition-colors"
+                  className="flex-1 sm:flex-none w-full sm:w-auto px-3 py-2 bg-sage-50 border border-sage-200 rounded-lg text-sm font-medium text-sage-700 focus:outline-none focus:border-sage-400 hover:border-sage-300 transition-colors"
                 >
                   <option value="all">All Groups</option>
                   {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -305,7 +361,7 @@ const Summaries: React.FC = () => {
                     <select 
                       value={selectedLandId} 
                       onChange={(e) => setSelectedLandId(e.target.value)}
-                      className="px-3 py-2 bg-sage-50 border border-sage-200 rounded-lg text-sm font-medium text-sage-700 focus:outline-none focus:border-sage-400 hover:border-sage-300 transition-colors"
+                      className="flex-1 sm:flex-none w-full sm:w-auto px-3 py-2 bg-sage-50 border border-sage-200 rounded-lg text-sm font-medium text-sage-700 focus:outline-none focus:border-sage-400 hover:border-sage-300 transition-colors"
                     >
                       <option value="all">All Lands</option>
                       {lands.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -314,7 +370,7 @@ const Summaries: React.FC = () => {
                      <select 
                       value={selectedDestId} 
                       onChange={(e) => setSelectedDestId(e.target.value)}
-                      className="px-3 py-2 bg-sage-50 border border-sage-200 rounded-lg text-sm font-medium text-sage-700 focus:outline-none focus:border-sage-400 hover:border-sage-300 transition-colors"
+                      className="flex-1 sm:flex-none w-full sm:w-auto px-3 py-2 bg-sage-50 border border-sage-200 rounded-lg text-sm font-medium text-sage-700 focus:outline-none focus:border-sage-400 hover:border-sage-300 transition-colors"
                     >
                       <option value="all">All Destinations</option>
                       {destinations.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -323,7 +379,7 @@ const Summaries: React.FC = () => {
                     <select 
                       value={selectedPlateId} 
                       onChange={(e) => setSelectedPlateId(e.target.value)}
-                      className="px-3 py-2 bg-sage-50 border border-sage-200 rounded-lg text-sm font-medium text-sage-700 focus:outline-none focus:border-sage-400 hover:border-sage-300 transition-colors"
+                      className="flex-1 sm:flex-none w-full sm:w-auto px-3 py-2 bg-sage-50 border border-sage-200 rounded-lg text-sm font-medium text-sage-700 focus:outline-none focus:border-sage-400 hover:border-sage-300 transition-colors"
                     >
                       <option value="all">All Plates</option>
                       {plates.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -332,7 +388,7 @@ const Summaries: React.FC = () => {
                     <select 
                       value={selectedDriverId} 
                       onChange={(e) => setSelectedDriverId(e.target.value)}
-                      className="px-3 py-2 bg-sage-50 border border-sage-200 rounded-lg text-sm font-medium text-sage-700 focus:outline-none focus:border-sage-400 hover:border-sage-300 transition-colors"
+                      className="flex-1 sm:flex-none w-full sm:w-auto px-3 py-2 bg-sage-50 border border-sage-200 rounded-lg text-sm font-medium text-sage-700 focus:outline-none focus:border-sage-400 hover:border-sage-300 transition-colors"
                     >
                       <option value="all">All Drivers</option>
                       {drivers.map(d => {
@@ -344,16 +400,16 @@ const Summaries: React.FC = () => {
                 )}
              </div>
 
-             <button className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold shadow-sm transition-colors ml-auto">
-                <Download size={16} /> Download Report
+             <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold shadow-sm transition-colors lg:ml-auto">
+                <Download size={16} /> <span className="sm:hidden lg:inline">Download</span> Report
              </button>
           </div>
 
           {/* --- CONTENT: EMPLOYEE VIEW --- */}
           {activeTab === 'employee' && (
              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Summary Cards - Responsive Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                    <SummaryCard 
                       label="Total Days Worked" 
                       value={empAggregates.totalDays}
@@ -391,7 +447,7 @@ const Summaries: React.FC = () => {
                           </select>
                           <span>entries</span>
                       </div>
-                      <div className="relative">
+                      <div className="relative w-full sm:w-auto">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sage-400 font-medium text-xs">Search:</span>
                           <input 
                               type="text" 
@@ -402,63 +458,65 @@ const Summaries: React.FC = () => {
                       </div>
                   </div>
 
-                   <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                         <thead className="bg-sage-50 text-sage-700 text-xs uppercase font-bold tracking-wider border-b border-sage-200">
-                            <tr>
-                               <th className="px-6 py-4 cursor-pointer hover:text-sage-800 group">
-                                   <div className="flex items-center justify-between">
-                                        Employee
-                                        <div className="flex flex-col opacity-50 group-hover:opacity-100"><ChevronUp size={8} /><ChevronDown size={8} className="-mt-1"/></div>
-                                    </div>
-                               </th>
-                               <th className="px-6 py-4 text-center">Days Present</th>
-                               <th className="px-6 py-4 text-right cursor-pointer hover:text-sage-800 group">
-                                   <div className="flex items-center justify-end gap-2">
-                                        Total Earnings
-                                        <div className="flex flex-col opacity-50 group-hover:opacity-100"><ChevronUp size={8} /><ChevronDown size={8} className="-mt-1"/></div>
-                                    </div>
-                               </th>
-                               <th className="px-6 py-4 text-right text-red-600">Unpaid Debt</th>
-                            </tr>
-                         </thead>
-                         <tbody className="divide-y divide-sage-100">
-                            {employeeSummaryData.slice(0, entriesPerPage).map(emp => (
-                               <tr key={emp.id} className="hover:bg-sage-50 transition-colors">
-                                  <td className="px-6 py-4">
-                                     <div className="font-bold text-sage-800">{emp.name}</div>
-                                     <div className="text-xs text-sage-400 font-medium bg-sage-100 inline-block px-2 py-0.5 rounded mt-1">{emp.type}</div>
-                                  </td>
-                                  <td className="px-6 py-4 text-center">
-                                     <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg font-bold text-sm">{emp.daysWorked}</span>
-                                  </td>
-                                  <td className="px-6 py-4 text-right font-mono font-bold text-sage-700">
-                                     {formatCurrency(emp.totalWage)}
-                                  </td>
-                                  <td className="px-6 py-4 text-right font-mono font-bold text-red-500">
-                                     {emp.unpaidDebt > 0 ? formatCurrency(emp.unpaidDebt) : <span className="text-sage-300">-</span>}
-                                  </td>
-                               </tr>
-                            ))}
-                            {employeeSummaryData.length === 0 && (
-                               <tr><td colSpan={4} className="p-8 text-center text-sage-400 italic">No employee data found based on filters.</td></tr>
-                            )}
-                         </tbody>
-                      </table>
-                   </div>
-                   
-                   {/* Footer */}
-                    <div className="p-4 border-t border-sage-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm text-sage-500">
-                        <div>
-                            Showing 1 to {Math.min(employeeSummaryData.length, entriesPerPage)} of {employeeSummaryData.length} entries
+                  {/* Data Slicing for Employee */}
+                  {(() => {
+                      const { currentItems, totalPages, indexOfFirstItem, indexOfLastItem } = getPaginatedData(employeeSummaryData);
+                      
+                      return (
+                        <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[600px]">
+                                <thead className="bg-sage-50 text-sage-700 text-xs uppercase font-bold tracking-wider border-b border-sage-200">
+                                    <tr>
+                                    <th className="px-6 py-4 cursor-pointer hover:text-sage-800 group">
+                                        <div className="flex items-center justify-between">
+                                                Employee
+                                                <div className="flex flex-col opacity-50 group-hover:opacity-100"><ChevronUp size={8} /><ChevronDown size={8} className="-mt-1"/></div>
+                                            </div>
+                                    </th>
+                                    <th className="px-6 py-4 text-center">Days Present</th>
+                                    <th className="px-6 py-4 text-right cursor-pointer hover:text-sage-800 group">
+                                        <div className="flex items-center justify-end gap-2">
+                                                Total Earnings
+                                                <div className="flex flex-col opacity-50 group-hover:opacity-100"><ChevronUp size={8} /><ChevronDown size={8} className="-mt-1"/></div>
+                                            </div>
+                                    </th>
+                                    <th className="px-6 py-4 text-right text-red-600">Unpaid Debt</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-sage-100">
+                                    {currentItems.map(emp => (
+                                    <tr key={emp.id} className="hover:bg-sage-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="font-bold text-sage-800">{emp.name}</div>
+                                            <div className="text-xs text-sage-400 font-medium bg-sage-100 inline-block px-2 py-0.5 rounded mt-1">{emp.type}</div>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg font-bold text-sm">{emp.daysWorked}</span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right font-mono font-bold text-sage-700">
+                                            {formatCurrency(emp.totalWage)}
+                                        </td>
+                                        <td className="px-6 py-4 text-right font-mono font-bold text-red-500">
+                                            {emp.unpaidDebt > 0 ? formatCurrency(emp.unpaidDebt) : <span className="text-sage-300">-</span>}
+                                        </td>
+                                    </tr>
+                                    ))}
+                                    {currentItems.length === 0 && (
+                                    <tr><td colSpan={4} className="p-8 text-center text-sage-400 italic">No employee data found based on filters.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
-                        <div className="flex gap-1">
-                            <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs disabled:opacity-50">Previous</button>
-                            <button className="px-3 py-1 bg-sage-600 text-white border border-sage-600 rounded text-xs">1</button>
-                            <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">2</button>
-                            <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">Next</button>
-                        </div>
-                    </div>
+                        <PaginationControls 
+                            totalItems={employeeSummaryData.length} 
+                            totalPages={totalPages} 
+                            indexOfFirstItem={indexOfFirstItem} 
+                            indexOfLastItem={indexOfLastItem} 
+                        />
+                        </>
+                      );
+                  })()}
                 </div>
              </div>
           )}
@@ -466,7 +524,7 @@ const Summaries: React.FC = () => {
           {/* --- CONTENT: GROUP & LAND VIEW --- */}
           {(activeTab === 'group' || activeTab === 'land') && (
              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {/* Summary Cards */}
+                {/* Summary Cards - Responsive Grid for Fold (2 cols) and Desktop (5 cols) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                    <SummaryCard 
                       label="Total Travels" 
@@ -512,7 +570,7 @@ const Summaries: React.FC = () => {
                           </select>
                           <span>entries</span>
                       </div>
-                      <div className="relative">
+                      <div className="relative w-full sm:w-auto">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sage-400 font-medium text-xs">Search:</span>
                           <input 
                               type="text" 
@@ -523,89 +581,91 @@ const Summaries: React.FC = () => {
                       </div>
                   </div>
 
-                   <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                         <thead className="bg-sage-50 text-sage-700 text-xs uppercase font-bold tracking-wider border-b border-sage-200">
-                            <tr>
-                               {activeTab === 'land' && <th className="px-6 py-4">Land Source</th>}
-                               <th className="px-6 py-4">Travel Record</th>
-                               <th className="px-6 py-4">Route Details</th>
-                               <th className="px-6 py-4">Driver</th>
-                               <th className="px-6 py-4 text-right">Tons</th>
-                               <th className="px-6 py-4 text-right text-indigo-600">Income</th>
-                               <th className="px-6 py-4 text-right text-red-500">Expenses</th>
-                               <th className="px-6 py-4 text-right text-emerald-600 cursor-pointer hover:text-sage-800 group">
-                                   <div className="flex items-center justify-end gap-2">
-                                        Net
-                                        <div className="flex flex-col opacity-50 group-hover:opacity-100"><ChevronUp size={8} /><ChevronDown size={8} className="-mt-1"/></div>
-                                    </div>
-                               </th>
-                            </tr>
-                         </thead>
-                         <tbody className="divide-y divide-sage-100">
-                            {travelSummaryData.slice(0, entriesPerPage).map(travel => (
-                               <tr key={travel.id} className="hover:bg-sage-50 transition-colors group">
-                                  {activeTab === 'land' && (
-                                     <td className="px-6 py-4 font-medium text-sage-800">
-                                        <div className="flex items-center gap-2">
-                                          <Map size={14} className="text-sage-400"/>
-                                          {getLandName(travel.land)}
-                                        </div>
-                                     </td>
-                                  )}
-                                  <td className="px-6 py-4">
-                                     <div className="font-bold text-sage-800">{travel.name}</div>
-                                     {travel.ticket && (
-                                       <div className="text-xs text-blue-600 bg-blue-50 inline-block px-1.5 rounded mt-1 font-mono">
-                                          {travel.ticket}
-                                       </div>
-                                     )}
-                                  </td>
-                                  <td className="px-6 py-4">
-                                     <div className="text-sm text-sage-600 flex items-center gap-2">
-                                        <span className="font-mono font-bold bg-gray-100 px-1 rounded">{getPlateName(travel.plateNumber)}</span>
-                                        <span className="text-sage-400 text-xs">➜</span>
-                                        <span className="font-medium">{getDestName(travel.destination)}</span>
-                                     </div>
-                                  </td>
-                                  <td className="px-6 py-4 text-sm text-sage-700">
-                                     {getEmployeeName(travel.driver)}
-                                  </td>
-                                  <td className="px-6 py-4 text-right font-medium text-sage-700">
-                                     {travel.tons.toFixed(2)}
-                                  </td>
-                                  <td className="px-6 py-4 text-right font-mono text-indigo-600 text-sm">
-                                     {formatCurrency(travel.totalIncome)}
-                                  </td>
-                                  <td className="px-6 py-4 text-right font-mono text-red-500 text-sm">
-                                     -{formatCurrency(travel.totalExpenses)}
-                                  </td>
-                                  <td className="px-6 py-4 text-right font-mono font-bold text-sm">
-                                     <span className={`${travel.netIncome >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                        {formatCurrency(travel.netIncome)}
-                                     </span>
-                                  </td>
-                               </tr>
-                            ))}
-                             {travelSummaryData.length === 0 && (
-                               <tr><td colSpan={activeTab === 'land' ? 8 : 7} className="p-8 text-center text-sage-400 italic">No travel records found based on filters.</td></tr>
-                            )}
-                         </tbody>
-                      </table>
-                   </div>
+                   {/* Data Slicing for Travels */}
+                   {(() => {
+                        const { currentItems, totalPages, indexOfFirstItem, indexOfLastItem } = getPaginatedData(travelSummaryData);
 
-                    {/* Footer */}
-                    <div className="p-4 border-t border-sage-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm text-sage-500">
-                        <div>
-                            Showing 1 to {Math.min(travelSummaryData.length, entriesPerPage)} of {travelSummaryData.length} entries
-                        </div>
-                        <div className="flex gap-1">
-                            <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs disabled:opacity-50">Previous</button>
-                            <button className="px-3 py-1 bg-sage-600 text-white border border-sage-600 rounded text-xs">1</button>
-                            <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">2</button>
-                            <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">Next</button>
-                        </div>
-                    </div>
+                        return (
+                            <>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse min-w-[800px]">
+                                    <thead className="bg-sage-50 text-sage-700 text-xs uppercase font-bold tracking-wider border-b border-sage-200">
+                                        <tr>
+                                        {activeTab === 'land' && <th className="px-6 py-4">Land Source</th>}
+                                        <th className="px-6 py-4">Travel Record</th>
+                                        <th className="px-6 py-4">Route Details</th>
+                                        <th className="px-6 py-4">Driver</th>
+                                        <th className="px-6 py-4 text-right">Tons</th>
+                                        <th className="px-6 py-4 text-right text-indigo-600">Income</th>
+                                        <th className="px-6 py-4 text-right text-red-500">Expenses</th>
+                                        <th className="px-6 py-4 text-right cursor-pointer hover:text-sage-800 group">
+                                            <div className="flex items-center justify-end gap-2">
+                                                    Net
+                                                    <div className="flex flex-col opacity-50 group-hover:opacity-100"><ChevronUp size={8} /><ChevronDown size={8} className="-mt-1"/></div>
+                                                </div>
+                                        </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-sage-100">
+                                        {currentItems.map(travel => (
+                                        <tr key={travel.id} className="hover:bg-sage-50 transition-colors group">
+                                            {activeTab === 'land' && (
+                                                <td className="px-6 py-4 font-medium text-sage-800">
+                                                    <div className="flex items-center gap-2">
+                                                    <Map size={14} className="text-sage-400"/>
+                                                    {getLandName(travel.land)}
+                                                    </div>
+                                                </td>
+                                            )}
+                                            <td className="px-6 py-4">
+                                                <div className="font-bold text-sage-800">{travel.name}</div>
+                                                {travel.ticket && (
+                                                <div className="text-xs text-blue-600 bg-blue-50 inline-block px-1.5 rounded mt-1 font-mono">
+                                                    {travel.ticket}
+                                                </div>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm text-sage-600 flex items-center gap-2">
+                                                    <span className="font-mono font-bold bg-gray-100 px-1 rounded">{getPlateName(travel.plateNumber)}</span>
+                                                    <span className="text-sage-400 text-xs">➜</span>
+                                                    <span className="font-medium">{getDestName(travel.destination)}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-sage-700">
+                                                {getEmployeeName(travel.driver)}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-medium text-sage-700">
+                                                {travel.tons.toFixed(2)}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-mono text-indigo-600 text-sm">
+                                                {formatCurrency(travel.totalIncome)}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-mono text-red-500 text-sm">
+                                                -{formatCurrency(travel.totalExpenses)}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-mono font-bold text-sm">
+                                                <span className={`${travel.netIncome >= 0 ? 'text-sage-700' : 'text-rose-600'}`}>
+                                                    {formatCurrency(travel.netIncome)}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        ))}
+                                        {currentItems.length === 0 && (
+                                        <tr><td colSpan={activeTab === 'land' ? 8 : 7} className="p-8 text-center text-sage-400 italic">No travel records found based on filters.</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <PaginationControls 
+                                totalItems={travelSummaryData.length} 
+                                totalPages={totalPages} 
+                                indexOfFirstItem={indexOfFirstItem} 
+                                indexOfLastItem={indexOfLastItem} 
+                            />
+                            </>
+                        );
+                   })()}
                 </div>
              </div>
           )}

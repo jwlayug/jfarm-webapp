@@ -22,6 +22,7 @@ const Groups: React.FC = () => {
   // Table State
   const [searchQuery, setSearchQuery] = useState('');
   const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Group Modal State
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
@@ -131,6 +132,18 @@ const Groups: React.FC = () => {
     group.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredGroups.length / entriesPerPage);
+  const indexOfLastItem = currentPage * entriesPerPage;
+  const indexOfFirstItem = indexOfLastItem - entriesPerPage;
+  const currentItems = filteredGroups.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+        setCurrentPage(page);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -140,9 +153,9 @@ const Groups: React.FC = () => {
         </div>
         <button 
           onClick={handleAddGroup}
-          className="bg-sage-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-sage-700 transition-colors shadow-sm"
+          className="bg-sage-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-sage-700 transition-colors shadow-sm text-sm sm:text-base"
         >
-          <Plus size={18} /> Create Group
+          <Plus size={18} /> <span className="hidden sm:inline">Create Group</span><span className="sm:hidden">New</span>
         </button>
       </div>
 
@@ -153,7 +166,7 @@ const Groups: React.FC = () => {
                 <span>Show</span>
                 <select 
                     value={entriesPerPage}
-                    onChange={(e) => setEntriesPerPage(Number(e.target.value))}
+                    onChange={(e) => { setEntriesPerPage(Number(e.target.value)); setCurrentPage(1); }}
                     className="bg-sage-50 border border-sage-200 rounded px-2 py-1 focus:outline-none focus:border-sage-400 text-sage-700 text-xs"
                 >
                     <option value={10}>10</option>
@@ -162,12 +175,12 @@ const Groups: React.FC = () => {
                 </select>
                 <span>entries</span>
             </div>
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sage-400 font-medium text-xs">Search:</span>
                 <input 
                     type="text" 
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                     className="pl-16 pr-4 py-1.5 border border-sage-200 rounded-lg text-sm focus:outline-none focus:border-sage-400 w-full sm:w-64"
                 />
             </div>
@@ -180,7 +193,7 @@ const Groups: React.FC = () => {
           </div>
         ) : (
            <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                 <tr className="bg-sage-50 border-b border-sage-200 text-xs font-bold text-sage-600 uppercase tracking-wider">
                     <th className="px-6 py-4 cursor-pointer hover:text-sage-800 group">
@@ -201,7 +214,7 @@ const Groups: React.FC = () => {
                 </tr>
                 </thead>
                 <tbody className="divide-y divide-sage-100">
-                {filteredGroups.length > 0 ? filteredGroups.slice(0, entriesPerPage).map((group) => (
+                {currentItems.length > 0 ? currentItems.map((group) => (
                     <tr key={group.id} className="hover:bg-sage-50 transition-colors group">
                     <td className="px-6 py-4">
                         <div className="font-bold text-sage-800">{group.name}</div>
@@ -225,19 +238,19 @@ const Groups: React.FC = () => {
                                 className="flex items-center gap-1.5 bg-blue-50 text-blue-600 border border-blue-100 px-2.5 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors shadow-sm"
                                 title="Add Travel Record"
                             >
-                                <Plus size={14} /> Add Travel
+                                <Plus size={14} /> <span className="hidden xl:inline">Add Travel</span>
                             </button>
                             <button 
                                 onClick={() => handleViewHistory(group)}
                                 className="flex items-center gap-1.5 bg-amber-50 text-amber-600 border border-amber-100 px-2.5 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-100 transition-colors shadow-sm"
                                 title="View History"
                             >
-                                <History size={14} /> History
+                                <History size={14} /> <span className="hidden xl:inline">History</span>
                             </button>
                         </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => handleEditGroup(group)} className="p-2 text-sage-400 hover:text-sage-600 hover:bg-sage-100 rounded-lg transition-colors" title="Edit Group">
                                 <Edit2 size={16} />
                             </button>
@@ -262,13 +275,34 @@ const Groups: React.FC = () => {
         {/* Pagination Footer */}
         <div className="p-4 border-t border-sage-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm text-sage-500">
             <div>
-                Showing 1 to {Math.min(filteredGroups.length, entriesPerPage)} of {filteredGroups.length} entries
+                Showing {filteredGroups.length > 0 ? indexOfFirstItem + 1 : 0} to {Math.min(indexOfLastItem, filteredGroups.length)} of {filteredGroups.length} entries
             </div>
             <div className="flex gap-1">
-                <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs disabled:opacity-50">Previous</button>
-                <button className="px-3 py-1 bg-sage-600 text-white border border-sage-600 rounded text-xs">1</button>
-                <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">2</button>
-                <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">Next</button>
+                <button 
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Previous
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button 
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        className={`px-3 py-1 border rounded text-xs ${currentPage === page ? 'bg-sage-600 text-white border-sage-600' : 'border-sage-200 hover:bg-sage-50'}`}
+                    >
+                        {page}
+                    </button>
+                ))}
+
+                <button 
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Next
+                </button>
             </div>
         </div>
       </div>
