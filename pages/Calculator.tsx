@@ -82,7 +82,7 @@ const Calculator: React.FC = () => {
                            value={entry.price || ''}
                            onChange={(e) => updateSugarcane(entry.id, 'price', parseFloat(e.target.value) || 0)}
                         />
-                        <span className="absolute right-2 top-2 text-xs text-sage-400">$</span>
+                        <span className="absolute right-2 top-2 text-xs text-sage-400">₱</span>
                      </div>
                      <button onClick={() => removeSugarcane(entry.id)} className="text-red-300 hover:text-red-500"><Trash2 size={16}/></button>
                   </div>
@@ -90,7 +90,7 @@ const Calculator: React.FC = () => {
             </div>
             <div className="mt-6 pt-4 border-t border-sage-100 flex justify-between items-center">
                <span className="text-sage-500 font-medium">Subtotal</span>
-               <span className="text-xl font-bold text-sage-800">${totalSugarcane.toLocaleString()}</span>
+               <span className="text-xl font-bold text-sage-800">₱{totalSugarcane.toLocaleString()}</span>
             </div>
          </div>
 
@@ -123,7 +123,7 @@ const Calculator: React.FC = () => {
                            value={entry.price || ''}
                            onChange={(e) => updateMolasses(entry.id, 'price', parseFloat(e.target.value) || 0)}
                         />
-                        <span className="absolute right-2 top-2 text-xs text-sage-400">$</span>
+                        <span className="absolute right-2 top-2 text-xs text-sage-400">₱</span>
                      </div>
                      <button onClick={() => removeMolasses(entry.id)} className="text-red-300 hover:text-red-500"><Trash2 size={16}/></button>
                   </div>
@@ -131,7 +131,7 @@ const Calculator: React.FC = () => {
             </div>
             <div className="mt-6 pt-4 border-t border-sage-100 flex justify-between items-center">
                <span className="text-sage-500 font-medium">Subtotal</span>
-               <span className="text-xl font-bold text-sage-800">${totalMolasses.toLocaleString()}</span>
+               <span className="text-xl font-bold text-sage-800">₱{totalMolasses.toLocaleString()}</span>
             </div>
          </div>
       </div>
@@ -143,7 +143,7 @@ const Calculator: React.FC = () => {
             <p className="text-sage-300">Sum of all sugarcane and molasses entries</p>
          </div>
          <div className="text-5xl font-bold tracking-tight">
-            ${grandTotal.toLocaleString()}
+            ₱{grandTotal.toLocaleString()}
          </div>
       </div>
     </div>

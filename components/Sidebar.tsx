@@ -2,7 +2,7 @@ import React from 'react';
 import {
   LayoutDashboard, Users, Layers, Car, CreditCard, Map,
   Disc, Navigation, Receipt, Landmark, FileText, Settings,
-  Calculator, X
+  Calculator, X, Sprout
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,9 +41,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentPage, onNav
     { label: 'Lands', icon: Map },
     { label: 'Plates', icon: Disc },
     { label: 'Destinations', icon: Navigation },
+    { label: 'Summaries', icon: FileText },
     { label: 'Expenses', icon: Receipt },
     { label: 'Loans', icon: Landmark },
-    { label: 'Summaries', icon: FileText },
+  
     { label: 'Settings', icon: Settings },
   ];
 
@@ -63,11 +64,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentPage, onNav
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex items-center justify-between px-6 py-5 h-20 border-b border-sage-500">
-          <div className="flex items-center gap-2 font-bold text-2xl tracking-tight">
-            <div className="w-8 h-8 bg-sage-100 rounded-lg flex items-center justify-center shadow-inner">
-              <span className="text-sage-700">S</span>
-            </div>
-            <span>SAGE<span className="text-sage-300">UI</span></span>
+          <div className="flex items-center gap-3 font-bold text-2xl tracking-tight">
+             {/* Logo Icon */}
+             <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm text-sage-600">
+               <Sprout size={22} />
+             </div>
+             <div className="flex flex-col leading-none">
+                <span className="text-white text-xl">JFarm</span>
+                <span className="text-[9px] text-sage-200 font-normal tracking-wide uppercase mt-0.5">Sugarcane Management</span>
+             </div>
           </div>
           <button onClick={() => setIsOpen(false)} className="lg:hidden text-sage-200 hover:text-white">
             <X size={24} />

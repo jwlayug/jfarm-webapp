@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
-import { Employee } from '../../types';
+import { Destination } from '../../types';
 
-interface EmployeeModalProps {
+interface DestinationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (employee: Omit<Employee, 'id'>) => Promise<void>;
-  initialData?: Employee | null;
+  onSave: (destination: Omit<Destination, 'id'>) => Promise<void>;
+  initialData?: Destination | null;
 }
 
-const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, onSave, initialData }) => {
+const DestinationModal: React.FC<DestinationModalProps> = ({ isOpen, onClose, onSave, initialData }) => {
   const [name, setName] = useState('');
-  const [type, setType] = useState('Driver');
+  const [color, setColor] = useState('#778873');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Reset or populate form when modal opens/closes or data changes
+  const predefinedColors = [
+    '#778873', '#A1BC98', '#D2DCB6', '#E5ECD0', 
+    '#F87171', '#FBBF24', '#60A5FA', '#818CF8', '#A78BFA'
+  ];
+
   useEffect(() => {
-    if (isOpen && initialData) {
-      setName(initialData.name);
-      setType(initialData.type);
-    } else if (isOpen && !initialData) {
-      setName('');
-      setType('Driver');
+    if (isOpen) {
+      setName(initialData?.name || '');
+      setColor(initialData?.color || '#778873');
     }
   }, [isOpen, initialData]);
 
@@ -33,10 +34,10 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, onSave, 
 
     setIsLoading(true);
     try {
-      await onSave({ name, type });
+      await onSave({ name, color });
       onClose();
     } catch (error) {
-      console.error("Failed to save", error);
+      console.error("Failed to save destination", error);
     } finally {
       setIsLoading(false);
     }
@@ -44,42 +45,50 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, onSave, 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-200">
-        {/* Header */}
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="bg-sage-600 px-6 py-4 flex justify-between items-center">
           <h2 className="text-white font-bold text-lg">
-            {initialData ? 'Edit Employee' : 'Add New Employee'}
+            {initialData ? 'Edit Destination' : 'Add New Destination'}
           </h2>
           <button onClick={onClose} className="text-sage-200 hover:text-white transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-sage-700 mb-1">Full Name</label>
+            <label className="block text-sm font-medium text-sage-700 mb-1">Destination Name</label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. John Doe"
+              placeholder="e.g. Central Mill"
               className="w-full px-3 py-2 border border-sage-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent transition-all text-sage-800 bg-white"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-sage-700 mb-1">Employee Type</label>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full px-3 py-2 border border-sage-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent bg-white text-sage-800 transition-all"
-            >
-              <option value="Staff">Staff</option>
-              <option value="Driver">Driver</option>
-            
-            </select>
+            <label className="block text-sm font-medium text-sage-700 mb-2">Color Tag</label>
+            <div className="flex flex-wrap gap-3 mb-2">
+              {predefinedColors.map((c) => (
+                <div 
+                  key={c}
+                  onClick={() => setColor(c)}
+                  className={`w-8 h-8 rounded-full cursor-pointer border-2 transition-transform hover:scale-110 ${color === c ? 'border-sage-600' : 'border-transparent'}`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+               <input 
+                  type="color" 
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="h-8 w-12 p-0 border-0 bg-transparent"
+               />
+               <span className="text-xs text-sage-400 font-mono uppercase">{color}</span>
+            </div>
           </div>
 
           <div className="pt-4 flex justify-end gap-3">
@@ -97,7 +106,7 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, onSave, 
               className="px-4 py-2 bg-sage-600 text-white rounded-lg font-medium hover:bg-sage-700 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-70"
             >
               {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-              {initialData ? 'Save Changes' : 'Create Employee'}
+              {initialData ? 'Save Changes' : 'Add Destination'}
             </button>
           </div>
         </form>
@@ -106,4 +115,4 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, onSave, 
   );
 };
 
-export default EmployeeModal;
+export default DestinationModal;

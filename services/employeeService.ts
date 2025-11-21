@@ -27,7 +27,7 @@ export const addEmployee = async (employee: Omit<Employee, 'id'>): Promise<Emplo
 // --- READ ---
 export const getEmployees = async (): Promise<Employee[]> => {
   try {
-    // Fetch employees ordered by name
+    // Fetch employees ordered by name for better UX
     const q = query(collection(db, COLLECTION_NAME), orderBy('name'));
     const querySnapshot = await getDocs(q);
     

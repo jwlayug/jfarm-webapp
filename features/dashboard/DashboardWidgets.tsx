@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUp, ArrowDown, MoreVertical, ExternalLink, Filter, Download, FileText } from 'lucide-react';
+import { ArrowUp, ArrowDown, MoreVertical, ExternalLink, Filter, Download, FileText, ChevronUp, ChevronDown } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, LineChart, Line
@@ -263,52 +263,66 @@ export const RecentActivity: React.FC = () => (
 );
 
 export const DealsTable: React.FC = () => (
-  <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-6">
-     <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <h3 className="font-bold text-sage-700 border-l-4 border-sage-400 pl-3 text-lg self-start md:self-center">Deals Statistics</h3>
-        <div className="flex gap-3 w-full md:w-auto">
-           <div className="relative flex-1 md:w-64">
-              <input type="text" placeholder="Search Here" className="w-full pl-3 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-sage-400" />
-           </div>
-           <button className="flex items-center gap-2 bg-sage-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm whitespace-nowrap">
-              Sort By <ArrowDown size={14} />
-           </button>
+  <div className="bg-white rounded-xl shadow-sm border border-sage-100">
+     {/* Header Controls */}
+     <div className="p-4 border-b border-sage-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-sm text-sage-600">
+            <span>Show</span>
+            <select className="bg-sage-50 border border-sage-200 rounded px-2 py-1 focus:outline-none focus:border-sage-400 text-sage-700 text-xs">
+                <option>10</option>
+                <option>25</option>
+                <option>50</option>
+            </select>
+            <span>entries</span>
+        </div>
+        <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sage-400 font-medium text-xs">Search:</span>
+            <input type="text" className="pl-16 pr-4 py-1.5 border border-sage-200 rounded-lg text-sm focus:outline-none focus:border-sage-400 w-full sm:w-64" />
         </div>
      </div>
+     
      <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
            <thead>
-              <tr className="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wider">
-                 <th className="p-4 font-semibold"><input type="checkbox" className="rounded text-sage-500 focus:ring-0"/></th>
-                 <th className="p-4 font-semibold">Sales Rep</th>
-                 <th className="p-4 font-semibold">Category</th>
-                 <th className="p-4 font-semibold">Mail</th>
-                 <th className="p-4 font-semibold">Location</th>
-                 <th className="p-4 font-semibold">Date</th>
-                 <th className="p-4 font-semibold">Action</th>
+              <tr className="bg-sage-50 border-b border-sage-200 text-xs font-bold text-sage-600 uppercase tracking-wider">
+                 <th className="px-6 py-4">
+                    <div className="flex items-center justify-between cursor-pointer hover:text-sage-800">
+                        Sales Rep
+                        <div className="flex flex-col"><ChevronUp size={8} className="text-sage-400"/><ChevronDown size={8} className="text-sage-400 -mt-1"/></div>
+                    </div>
+                 </th>
+                 <th className="px-6 py-4">
+                     <div className="flex items-center justify-between cursor-pointer hover:text-sage-800">
+                        Category
+                        <div className="flex flex-col"><ChevronUp size={8} className="text-sage-400"/><ChevronDown size={8} className="text-sage-400 -mt-1"/></div>
+                    </div>
+                 </th>
+                 <th className="px-6 py-4">Mail</th>
+                 <th className="px-6 py-4">Location</th>
+                 <th className="px-6 py-4">Date</th>
+                 <th className="px-6 py-4">Action</th>
               </tr>
            </thead>
-           <tbody className="text-sm">
+           <tbody className="divide-y divide-sage-100">
               {Mock.dealsTableData.map((row) => (
-                 <tr key={row.id} className="hover:bg-sage-50 transition-colors border-b border-gray-50 last:border-none">
-                    <td className="p-4"><input type="checkbox" className="rounded text-sage-500 focus:ring-0"/></td>
-                    <td className="p-4">
+                 <tr key={row.id} className="hover:bg-sage-50 transition-colors">
+                    <td className="px-6 py-4">
                        <div className="flex items-center gap-3">
                           <img src={row.salesRep.img} alt="" className="w-8 h-8 rounded-full object-cover" />
-                          <span className="font-medium text-sage-800">{row.salesRep.name}</span>
+                          <span className="font-medium text-sage-800 text-sm">{row.salesRep.name}</span>
                        </div>
                     </td>
-                    <td className="p-4 text-gray-600">{row.category}</td>
-                    <td className="p-4 text-gray-600">{row.mail}</td>
-                    <td className="p-4">
+                    <td className="px-6 py-4 text-gray-600 text-sm">{row.category}</td>
+                    <td className="px-6 py-4 text-gray-600 text-sm">{row.mail}</td>
+                    <td className="px-6 py-4">
                        <span className={`px-2 py-1 rounded text-xs font-medium
                           ${row.location === 'Germany' ? 'bg-blue-50 text-blue-600' : 
                             row.location === 'USA' ? 'bg-orange-50 text-orange-600' : 
                             row.location === 'Canada' ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-600'}
                        `}>{row.location}</span>
                     </td>
-                    <td className="p-4 text-gray-600">{row.date}</td>
-                    <td className="p-4">
+                    <td className="px-6 py-4 text-gray-600 text-sm">{row.date}</td>
+                    <td className="px-6 py-4">
                        <div className="flex gap-2">
                           <button className="p-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100"><Download size={14}/></button>
                           <button className="p-1.5 rounded-md bg-purple-50 text-purple-600 hover:bg-purple-100"><FileText size={14}/></button>
@@ -319,14 +333,18 @@ export const DealsTable: React.FC = () => (
            </tbody>
         </table>
      </div>
-     {/* Pagination Mock */}
-     <div className="flex justify-between items-center mt-4 text-xs text-gray-400">
-        <div>Showing 4 of 20 entries</div>
-        <div className="flex gap-2">
-           <button className="px-2 py-1 border rounded hover:bg-gray-50">Prev</button>
-           <button className="px-2 py-1 bg-sage-500 text-white rounded">1</button>
-           <button className="px-2 py-1 border rounded hover:bg-gray-50">2</button>
-           <button className="px-2 py-1 border rounded hover:bg-gray-50">Next</button>
+     
+     {/* Footer Pagination */}
+     <div className="p-4 border-t border-sage-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm text-sage-500">
+        <div>Showing 1 to 10 of 50 entries</div>
+        <div className="flex gap-1">
+           <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">Previous</button>
+           <button className="px-3 py-1 bg-sage-600 text-white border border-sage-600 rounded text-xs">1</button>
+           <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">2</button>
+           <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">3</button>
+           <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">4</button>
+           <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">5</button>
+           <button className="px-3 py-1 border border-sage-200 rounded hover:bg-sage-50 text-xs">Next</button>
         </div>
      </div>
   </div>
