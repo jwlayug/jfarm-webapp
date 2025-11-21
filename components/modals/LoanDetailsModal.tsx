@@ -86,15 +86,9 @@ const LoanDetailsModal: React.FC<LoanDetailsModalProps> = ({ isOpen, onClose, lo
                  {loan.paid ? 'Paid' : 'Active'}
              </span>
           </div>
-          <div className="flex items-center gap-2">
-             <button onClick={() => { /* Handled by parent/renewal modal logic, here just edit icon */ }} className="text-sage-400 hover:text-sage-600 transition-colors">
-               <Edit2 size={18} />
-             </button>
-             <div className="h-4 w-px bg-sage-200 mx-1"></div>
-             <button onClick={onClose} className="text-red-400 hover:text-red-600 transition-colors">
-               <X size={20} />
-             </button>
-          </div>
+          <button onClick={onClose} className="text-sage-400 hover:text-red-500 transition-colors">
+            <X size={20} />
+          </button>
         </div>
 
         {/* Summary Section */}
@@ -164,7 +158,7 @@ const LoanDetailsModal: React.FC<LoanDetailsModalProps> = ({ isOpen, onClose, lo
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-white">
+        <div className="flex-1 overflow-y-auto p-6 bg-white relative">
            
            {activeTab === 'payments' && (
              <div className="space-y-4">
@@ -227,78 +221,102 @@ const LoanDetailsModal: React.FC<LoanDetailsModalProps> = ({ isOpen, onClose, lo
                 </div>
              </div>
            )}
+
+           {/* COMPACT OVERLAYS */}
+           
+           {/* Add Payment Dialog */}
+           {isAddingPayment && (
+               <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                   <div className="bg-white rounded-xl shadow-xl w-72 border border-sage-200 overflow-hidden animate-in zoom-in-95 fade-in duration-200">
+                       <div className="bg-sage-50 px-4 py-3 border-b border-sage-100 flex justify-between items-center">
+                           <h4 className="font-bold text-sm text-sage-800">New Payment</h4>
+                           <button onClick={() => setIsAddingPayment(false)} className="text-sage-400 hover:text-sage-600"><X size={16}/></button>
+                       </div>
+                       <form onSubmit={handleAddPayment} className="p-4 space-y-3">
+                           <div>
+                               <label className="block text-[10px] font-bold text-sage-500 uppercase mb-1">Amount</label>
+                               <input 
+                                 autoFocus
+                                 type="number" 
+                                 required 
+                                 value={paymentAmount} 
+                                 onChange={e => setPaymentAmount(e.target.value)} 
+                                 className="w-full px-3 py-2 border border-sage-200 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                                 placeholder="0.00"
+                               />
+                           </div>
+                           <div>
+                               <label className="block text-[10px] font-bold text-sage-500 uppercase mb-1">Date</label>
+                               <input 
+                                 type="date" 
+                                 required 
+                                 value={paymentDate} 
+                                 onChange={e => setPaymentDate(e.target.value)} 
+                                 className="w-full px-3 py-2 border border-sage-200 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                               />
+                           </div>
+                           <div className="pt-2">
+                               <button disabled={isLoading} type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors">
+                                   {isLoading ? <Loader2 className="animate-spin mx-auto" size={16}/> : 'Confirm Payment'}
+                               </button>
+                           </div>
+                       </form>
+                   </div>
+               </div>
+           )}
+
+           {/* Add Usage Dialog */}
+           {isAddingUsage && (
+               <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                   <div className="bg-white rounded-xl shadow-xl w-72 border border-sage-200 overflow-hidden animate-in zoom-in-95 fade-in duration-200">
+                       <div className="bg-sage-50 px-4 py-3 border-b border-sage-100 flex justify-between items-center">
+                           <h4 className="font-bold text-sm text-sage-800">New Usage</h4>
+                           <button onClick={() => setIsAddingUsage(false)} className="text-sage-400 hover:text-sage-600"><X size={16}/></button>
+                       </div>
+                       <form onSubmit={handleAddUsage} className="p-4 space-y-3">
+                           <div>
+                               <label className="block text-[10px] font-bold text-sage-500 uppercase mb-1">Description</label>
+                               <input 
+                                 type="text"
+                                 required 
+                                 autoFocus
+                                 value={usageDesc} 
+                                 onChange={e => setUsageDesc(e.target.value)} 
+                                 className="w-full px-3 py-2 border border-sage-200 rounded text-sm focus:ring-2 focus:ring-sage-500 outline-none"
+                                 placeholder="e.g. Fertilizer"
+                               />
+                           </div>
+                           <div>
+                               <label className="block text-[10px] font-bold text-sage-500 uppercase mb-1">Amount</label>
+                               <input 
+                                 type="number" 
+                                 required 
+                                 value={usageAmount} 
+                                 onChange={e => setUsageAmount(e.target.value)} 
+                                 className="w-full px-3 py-2 border border-sage-200 rounded text-sm focus:ring-2 focus:ring-sage-500 outline-none" 
+                                 placeholder="0.00"
+                               />
+                           </div>
+                           <div>
+                               <label className="block text-[10px] font-bold text-sage-500 uppercase mb-1">Date</label>
+                               <input 
+                                 type="date" 
+                                 required 
+                                 value={usageDate} 
+                                 onChange={e => setUsageDate(e.target.value)} 
+                                 className="w-full px-3 py-2 border border-sage-200 rounded text-sm focus:ring-2 focus:ring-sage-500 outline-none"
+                               />
+                           </div>
+                           <div className="pt-2">
+                               <button disabled={isLoading} type="submit" className="w-full bg-sage-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-sage-700 transition-colors">
+                                   {isLoading ? <Loader2 className="animate-spin mx-auto" size={16}/> : 'Record Usage'}
+                               </button>
+                           </div>
+                       </form>
+                   </div>
+               </div>
+           )}
         </div>
-
-        {/* COMPACT OVERLAYS */}
-        
-        {/* Add Payment Overlay */}
-        {isAddingPayment && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
-                <div className="bg-white rounded-xl shadow-2xl w-80 overflow-hidden animate-in zoom-in-95 duration-200 border border-sage-100">
-                    <div className="flex justify-between items-center px-4 py-3 border-b border-sage-50">
-                         <h3 className="font-bold text-sage-800">Add Payment</h3>
-                         <button onClick={() => setIsAddingPayment(false)} className="text-gray-400 hover:text-gray-600"><X size={18}/></button>
-                    </div>
-                    <form onSubmit={handleAddPayment} className="p-4 space-y-3">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 mb-1">Description</label>
-                             <div className="px-3 py-2 bg-gray-50 rounded text-sm text-gray-500 italic">
-                                Loan Payment
-                             </div>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 mb-1">Amount</label>
-                            <input type="number" autoFocus required value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} className="w-full px-3 py-2 border border-sage-200 rounded text-sm outline-none focus:border-blue-500" placeholder="0.00"/>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 mb-1">Date</label>
-                            <input type="date" required value={paymentDate} onChange={e => setPaymentDate(e.target.value)} className="w-full px-3 py-2 border border-sage-200 rounded text-sm outline-none focus:border-blue-500"/>
-                        </div>
-                        <button disabled={isLoading} type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors mt-2">
-                            {isLoading ? <Loader2 className="animate-spin mx-auto" size={16}/> : 'Add'}
-                        </button>
-                    </form>
-                </div>
-            </div>
-        )}
-
-        {/* Add Usage Overlay */}
-        {isAddingUsage && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
-                <div className="bg-white rounded-xl shadow-2xl w-80 overflow-hidden animate-in zoom-in-95 duration-200 border border-sage-100">
-                    <div className="flex justify-between items-center px-4 py-3 border-b border-sage-50">
-                         <h3 className="font-bold text-sage-800">Add Usage</h3>
-                         <button onClick={() => setIsAddingUsage(false)} className="text-gray-400 hover:text-gray-600"><X size={18}/></button>
-                    </div>
-                    <p className="px-4 pt-2 text-[10px] text-gray-500">Manage how this loan amount was used.</p>
-                    <form onSubmit={handleAddUsage} className="p-4 space-y-3">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 mb-1">Description</label>
-                            <textarea 
-                              rows={2}
-                              required 
-                              value={usageDesc} 
-                              onChange={e => setUsageDesc(e.target.value)} 
-                              className="w-full px-3 py-2 border border-sage-200 rounded text-sm outline-none focus:border-blue-500 resize-none"
-                              placeholder=""
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 mb-1">Amount</label>
-                            <input type="number" required value={usageAmount} onChange={e => setUsageAmount(e.target.value)} className="w-full px-3 py-2 border border-sage-200 rounded text-sm outline-none focus:border-blue-500" placeholder="0"/>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 mb-1">Usage Date</label>
-                            <input type="date" required value={usageDate} onChange={e => setUsageDate(e.target.value)} className="w-full px-3 py-2 border border-sage-200 rounded text-sm outline-none focus:border-blue-500"/>
-                        </div>
-                        <button disabled={isLoading} type="submit" className="w-full bg-blue-500 text-white py-2 rounded-lg text-sm font-bold hover:bg-blue-600 transition-colors mt-2">
-                            {isLoading ? <Loader2 className="animate-spin mx-auto" size={16}/> : 'Add'}
-                        </button>
-                    </form>
-                </div>
-            </div>
-        )}
-
       </div>
     </div>
   );

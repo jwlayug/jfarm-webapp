@@ -42,7 +42,9 @@ const Loans: React.FC = () => {
     setIsAddModalOpen(true);
   };
 
-  const handleEdit = (loan: Loan) => {
+  const handleEdit = (e: React.MouseEvent, loan: Loan) => {
+    e.preventDefault();
+    e.stopPropagation();
     setEditingLoan(loan);
     setIsAddModalOpen(true);
   };
@@ -52,19 +54,26 @@ const Loans: React.FC = () => {
     setIsDetailsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this loan?')) {
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault(); // Prevent any form submission or default link behavior
+    e.stopPropagation(); // Stop event from bubbling to the card
+    
+    if (window.confirm('Are you sure you want to delete this loan? All related payments and renewal records will be deleted.')) {
       try {
+        // Optimistically update UI
+        setLoans(prev => prev.filter(l => l.id !== id));
         await LoanService.deleteLoan(id);
-        fetchData();
       } catch (error) {
         console.error(error);
-        alert("Failed to delete loan");
+        alert("Failed to delete loan. Please refresh and try again.");
+        fetchData(); // Revert on error
       }
     }
   };
 
-  const handleOpenRenewal = (loan: Loan) => {
+  const handleOpenRenewal = (e: React.MouseEvent, loan: Loan) => {
+    e.preventDefault();
+    e.stopPropagation();
     setRenewingLoan(loan);
     setIsRenewalModalOpen(true);
   };
@@ -126,7 +135,11 @@ const Loans: React.FC = () => {
       ) : (
          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {loans.map((loan) => (
-               <div key={loan.id} className="bg-white rounded-xl shadow-sm border border-sage-100 p-6 hover:shadow-md transition-shadow">
+               <div 
+                  key={loan.id} 
+                  className="bg-white rounded-xl shadow-sm border border-sage-100 p-6 hover:shadow-md transition-shadow cursor-pointer group relative"
+                  onClick={() => handleView(loan)}
+               >
                    <div className="flex justify-between items-start mb-4">
                       <div>
                          <h3 className="text-lg font-bold text-sage-800 flex items-center gap-2">
@@ -158,18 +171,39 @@ const Loans: React.FC = () => {
                        </div>
                    </div>
 
-                   <div className="flex gap-2">
-                       <button onClick={() => handleView(loan)} className="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors">
+                   <div className="flex gap-2 items-center">
+                       <button 
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleView(loan); }}
+                          className="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors"
+                        >
                            <Eye size={14} /> View
                        </button>
-                       <div className="flex gap-1">
-                           <button onClick={() => handleEdit(loan)} className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors" title="Edit">
+                       
+                       {/* Safe Zone for Actions: Added z-index and relative positioning to ensure clickability */}
+                       <div className="flex gap-1 relative z-10" onClick={(e) => e.stopPropagation()}>
+                           <button 
+                              type="button"
+                              onClick={(e) => handleEdit(e, loan)} 
+                              className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors cursor-pointer" 
+                              title="Edit"
+                           >
                                <Edit2 size={16} />
                            </button>
-                           <button onClick={() => handleOpenRenewal(loan)} className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors" title="Renew">
+                           <button 
+                              type="button"
+                              onClick={(e) => handleOpenRenewal(e, loan)} 
+                              className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors cursor-pointer" 
+                              title="Renew"
+                           >
                                <RefreshCw size={16} />
                            </button>
-                           <button onClick={() => handleDelete(loan.id)} className="p-2 bg-red-50 text-red-400 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors" title="Delete">
+                           <button 
+                              type="button"
+                              onClick={(e) => handleDelete(e, loan.id)} 
+                              className="p-2 bg-red-50 text-red-400 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors cursor-pointer" 
+                              title="Delete"
+                           >
                                <Trash2 size={16} />
                            </button>
                        </div>
