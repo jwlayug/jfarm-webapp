@@ -157,30 +157,18 @@ export const renewLoan = async (id: string, newDueDate: string, renewalPaymentAm
          const loanData = loanSnap.data() as Loan;
          const now = new Date().toISOString();
 
-         // 1. Deduct renewal payment from current balance (if any)
-         // If the user pays 5000 on a 20000 balance, the new loan starts at 15000.
-         let currentBalance = loanData.remainingBalance;
-         
-         // Ensure we don't go below zero if they overpay
-         let effectiveNewPrincipal = Math.max(0, currentBalance - renewalPaymentAmount);
-
-         // 2. Record the renewal payment if > 0? 
-         // The user mentioned "This payment will be recorded in Other Expenses".
-         // Since we don't have an explicit expenses link yet, we just account for it in the balance reduction.
-         // Optionally we could add a "closing payment" to the history, but standard renewal 
-         // usually implies starting fresh. 
-         
-         // 3. Reset Metrics
-         // The new Principal is the remaining balance from previous cycle.
-         // Current Paid resets to 0.
-         // Payments array resets (or we could archive, but we'll clear for now as per request).
+         // Reset Logic:
+         // The loan resets to its original Total Amount (e.g., 200k).
+         // Any renewal payment is deducted from this fresh starting balance.
+         const baseAmount = loanData.totalAmount;
+         const effectiveNewBalance = Math.max(0, baseAmount - renewalPaymentAmount);
 
          await updateDoc(loanRef, {
-             totalAmount: effectiveNewPrincipal,
-             remainingBalance: effectiveNewPrincipal,
+             totalAmount: baseAmount, // Ensure total remains at original amount (e.g. 200k)
+             remainingBalance: effectiveNewBalance,
              totalPaidCurrent: 0,
              dueDate: newDueDate,
-             paid: effectiveNewPrincipal <= 0,
+             paid: effectiveNewBalance <= 0,
              payments: [], // Clear current payments list for the new cycle
              updatedAt: now
          });
