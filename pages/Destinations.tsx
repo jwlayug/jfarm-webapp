@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useState } from 'react';
 import { Navigation, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { Destination } from '../types';
-import * as DestinationService from '../services/destinationService';
+import { useFarmData } from '../context/FarmContext';
 import DestinationModal from '../components/modals/DestinationModal';
 import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Destinations: React.FC = () => {
-  const [destinations, setDestinations] = useState<Destination[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { destinations, isLoading, services } = useFarmData();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDest, setEditingDest] = useState<Destination | null>(null);
 
@@ -20,22 +21,6 @@ const Destinations: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const data = await DestinationService.getDestinations();
-      setDestinations(data);
-    } catch (error) {
-      console.error("Failed to load destinations", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const handleAdd = () => {
     setEditingDest(null);
@@ -56,8 +41,7 @@ const Destinations: React.FC = () => {
     if (!itemToDelete) return;
     setIsDeleting(true);
     try {
-      await DestinationService.deleteDestination(itemToDelete);
-      setDestinations(prev => prev.filter(d => d.id !== itemToDelete));
+      await services.destinations.delete(itemToDelete);
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
     } catch (error) {
@@ -69,11 +53,9 @@ const Destinations: React.FC = () => {
 
   const handleSave = async (data: Omit<Destination, 'id'>) => {
     if (editingDest) {
-      await DestinationService.updateDestination(editingDest.id, data);
-      setDestinations(prev => prev.map(d => d.id === editingDest.id ? { ...d, ...data } : d));
+      await services.destinations.update(editingDest.id, data);
     } else {
-      const newDest = await DestinationService.addDestination(data);
-      setDestinations(prev => [...prev, newDest]);
+      await services.destinations.add(data);
     }
   };
 

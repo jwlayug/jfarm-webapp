@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Landmark, Plus, Eye, Edit2, Trash2, RefreshCw, Calendar, FileText, Loader2 } from 'lucide-react';
+
+import React, { useState, useMemo } from 'react';
+import { Landmark, Plus, Eye, Edit2, Trash2, RefreshCw, Loader2 } from 'lucide-react';
 import { Loan } from '../types';
+import { useFarmData } from '../context/FarmContext';
 import * as LoanService from '../services/loanService';
 import LoanModal from '../components/modals/LoanModal';
 import LoanDetailsModal from '../components/modals/LoanDetailsModal';
@@ -8,15 +10,15 @@ import LoanRenewalModal from '../components/modals/LoanRenewalModal';
 import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Loans: React.FC = () => {
-  const [loans, setLoans] = useState<Loan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { loans, isLoading, activeFarmId } = useFarmData();
 
   // Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [viewingLoan, setViewingLoan] = useState<Loan | null>(null);
+  // Store ID instead of object to ensure real-time updates via context lookups
+  const [viewingLoanId, setViewingLoanId] = useState<string | null>(null);
 
   const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
   const [renewingLoan, setRenewingLoan] = useState<Loan | null>(null);
@@ -26,23 +28,11 @@ const Loans: React.FC = () => {
   const [loanToDelete, setLoanToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchData = async (showLoading = true) => {
-    if (showLoading) setIsLoading(true);
-    try {
-      const data = await LoanService.getLoans();
-      setLoans(data);
-      return data;
-    } catch (error) {
-      console.error("Failed to load loans", error);
-      return [];
-    } finally {
-      if (showLoading) setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Derived State: Find the live loan object from the context array
+  // This ensures that when 'loans' context updates (e.g. after payment), this object updates immediately.
+  const viewingLoan = useMemo(() => 
+    loans.find(l => l.id === viewingLoanId) || null, 
+  [loans, viewingLoanId]);
 
   // Actions
   const handleAdd = () => {
@@ -58,7 +48,7 @@ const Loans: React.FC = () => {
   };
 
   const handleView = (loan: Loan) => {
-    setViewingLoan(loan);
+    setViewingLoanId(loan.id);
     setIsDetailsModalOpen(true);
   };
 
@@ -74,19 +64,11 @@ const Loans: React.FC = () => {
     
     setIsDeleting(true);
     try {
-      console.log("UI: Processing delete for loan ID:", loanToDelete);
-      
-      // Optimistically update UI
-      setLoans(prev => prev.filter(l => l.id !== loanToDelete));
-
-      await LoanService.deleteLoan(loanToDelete);
-      console.log("UI: Loan deleted successfully.");
+      await LoanService.deleteLoan(loanToDelete, activeFarmId);
       setIsDeleteModalOpen(false);
       setLoanToDelete(null);
     } catch (error: any) {
-      console.error("UI: Failed to delete loan:", error);
       alert(`Failed to delete loan. Error: ${error.message}`);
-      fetchData(); // Revert on error
     } finally {
       setIsDeleting(false);
     }
@@ -100,17 +82,15 @@ const Loans: React.FC = () => {
   };
 
   const handleRenewSubmit = async (id: string, newDueDate: string, paymentAmount: number) => {
-      await LoanService.renewLoan(id, newDueDate, paymentAmount);
-      fetchData();
+      await LoanService.renewLoan(id, newDueDate, paymentAmount, activeFarmId); 
   };
 
   const handleSaveLoan = async (loanData: Omit<Loan, 'id' | 'payments' | 'usages' | 'createdAt' | 'updatedAt'>) => {
     if (editingLoan) {
-      await LoanService.updateLoan(editingLoan.id, loanData);
+      await LoanService.updateLoan(editingLoan.id, loanData, activeFarmId);
     } else {
-      await LoanService.addLoan(loanData);
+      await LoanService.addLoan(loanData, activeFarmId);
     }
-    fetchData();
   };
 
   // Summaries
@@ -197,7 +177,7 @@ const Loans: React.FC = () => {
                        </div>
                    </div>
 
-                   {/* ACTION FOOTER (Separated DOM structure for reliability) */}
+                   {/* ACTION FOOTER */}
                    <div className="px-6 pb-6 pt-0 flex gap-2 items-center">
                        <button 
                           type="button"
@@ -253,22 +233,13 @@ const Loans: React.FC = () => {
         initialData={editingLoan}
       />
 
+      {/* Use key to force re-render if data updates, preventing stale state */}
       <LoanDetailsModal 
+         key={viewingLoan?.updatedAt || viewingLoanId}
          isOpen={isDetailsModalOpen}
          onClose={() => setIsDetailsModalOpen(false)}
          loan={viewingLoan}
-         onUpdate={async () => {
-             // Fetch fresh data silently (no global loading spinner)
-             const updatedLoans = await fetchData(false);
-             
-             // Update the viewingLoan state with the fresh data from the list
-             if(viewingLoan) {
-                const updated = updatedLoans.find(l => l.id === viewingLoan.id);
-                if(updated) {
-                   setViewingLoan(updated);
-                }
-             }
-         }}
+         onUpdate={() => {}} // Context handles the update
       />
 
       <LoanRenewalModal

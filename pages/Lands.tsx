@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useState } from 'react';
 import { Map, Plus, Trash2, Edit2, Loader2 } from 'lucide-react';
 import { Land } from '../types';
-import * as LandService from '../services/landService';
+import { useFarmData } from '../context/FarmContext';
 import LandModal from '../components/modals/LandModal';
 import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Lands: React.FC = () => {
-  const [lands, setLands] = useState<Land[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { lands, isLoading, services } = useFarmData();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLand, setEditingLand] = useState<Land | null>(null);
 
@@ -20,22 +21,6 @@ const Lands: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const data = await LandService.getLands();
-      setLands(data);
-    } catch (error) {
-      console.error("Failed to load lands", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const handleAdd = () => {
     setEditingLand(null);
@@ -56,8 +41,7 @@ const Lands: React.FC = () => {
     if (!itemToDelete) return;
     setIsDeleting(true);
     try {
-      await LandService.deleteLand(itemToDelete);
-      setLands(prev => prev.filter(l => l.id !== itemToDelete));
+      await services.lands.delete(itemToDelete);
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
     } catch (error) {
@@ -69,11 +53,9 @@ const Lands: React.FC = () => {
 
   const handleSave = async (data: Omit<Land, 'id'>) => {
     if (editingLand) {
-      await LandService.updateLand(editingLand.id, data);
-      setLands(prev => prev.map(l => l.id === editingLand.id ? { ...l, ...data } : l));
+      await services.lands.update(editingLand.id, data);
     } else {
-      const newLand = await LandService.addLand(data);
-      setLands(prev => [...prev, newLand]);
+      await services.lands.add(data);
     }
   };
 

@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Search, Loader2, Wallet, CheckCircle2, AlertCircle, User, ChevronUp, ChevronDown } from 'lucide-react';
+
+import React, { useState } from 'react';
+import { Plus, Wallet, CheckCircle2, AlertCircle, User, ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
 import { Employee, Debt } from '../types';
-import * as EmployeeService from '../services/employeeService';
-import * as DebtService from '../services/debtService';
+import { useFarmData } from '../context/FarmContext';
 import DebtModal from '../components/modals/DebtModal';
 import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Debts: React.FC = () => {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [debts, setDebts] = useState<Debt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Consume global data from active farm
+  const { employees, debts, isLoading, services } = useFarmData();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,26 +23,6 @@ const Debts: React.FC = () => {
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const [empData, debtsData] = await Promise.all([
-        EmployeeService.getEmployees(),
-        DebtService.getDebts()
-      ]);
-      setEmployees(empData);
-      setDebts(debtsData);
-    } catch (error) {
-      console.error("Failed to load data", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const handleManageDebt = (employee: Employee) => {
     setSelectedEmployee(employee);
     setIsModalOpen(true);
@@ -50,8 +30,7 @@ const Debts: React.FC = () => {
 
   const handleAddDebt = async (debtData: Omit<Debt, 'id'>) => {
     try {
-      const newDebt = await DebtService.addDebt(debtData);
-      setDebts(prev => [...prev, newDebt]);
+      await services.debts.add(debtData);
     } catch (error) {
       alert("Failed to add debt");
     }
@@ -60,8 +39,7 @@ const Debts: React.FC = () => {
   const handleTogglePaid = async (debt: Debt) => {
     try {
       const updatedStatus = !debt.paid;
-      await DebtService.updateDebt(debt.id, { paid: updatedStatus });
-      setDebts(prev => prev.map(d => d.id === debt.id ? { ...d, paid: updatedStatus } : d));
+      await services.debts.update(debt.id, { paid: updatedStatus });
     } catch (error) {
       alert("Failed to update debt status");
     }
@@ -76,8 +54,7 @@ const Debts: React.FC = () => {
     if (!itemToDelete) return;
     setIsDeleting(true);
     try {
-      await DebtService.deleteDebt(itemToDelete);
-      setDebts(prev => prev.filter(d => d.id !== itemToDelete));
+      await services.debts.delete(itemToDelete);
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
     } catch (error) {
@@ -226,7 +203,7 @@ const Debts: React.FC = () => {
                     }) : (
                     <tr>
                         <td colSpan={4} className="p-8 text-center text-sage-400">
-                        No employees found.
+                        No employees found. Add employees first to manage debts.
                         </td>
                     </tr>
                     )}

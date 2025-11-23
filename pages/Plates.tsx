@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useState } from 'react';
 import { Hash, Plus, Trash2, Edit2, Loader2 } from 'lucide-react';
 import { Plate } from '../types';
-import * as PlateService from '../services/plateService';
+import { useFarmData } from '../context/FarmContext';
 import PlateModal from '../components/modals/PlateModal';
 import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Plates: React.FC = () => {
-  const [plates, setPlates] = useState<Plate[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { plates, isLoading, services } = useFarmData();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPlate, setEditingPlate] = useState<Plate | null>(null);
 
@@ -20,22 +21,6 @@ const Plates: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const data = await PlateService.getPlates();
-      setPlates(data);
-    } catch (error) {
-      console.error("Failed to load plates", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const handleAdd = () => {
     setEditingPlate(null);
@@ -56,8 +41,7 @@ const Plates: React.FC = () => {
     if (!itemToDelete) return;
     setIsDeleting(true);
     try {
-      await PlateService.deletePlate(itemToDelete);
-      setPlates(prev => prev.filter(p => p.id !== itemToDelete));
+      await services.plates.delete(itemToDelete);
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
     } catch (error) {
@@ -69,11 +53,9 @@ const Plates: React.FC = () => {
 
   const handleSave = async (data: Omit<Plate, 'id'>) => {
     if (editingPlate) {
-      await PlateService.updatePlate(editingPlate.id, data);
-      setPlates(prev => prev.map(p => p.id === editingPlate.id ? { ...p, ...data } : p));
+      await services.plates.update(editingPlate.id, data);
     } else {
-      const newPlate = await PlateService.addPlate(data);
-      setPlates(prev => [...prev, newPlate]);
+      await services.plates.add(data);
     }
   };
 

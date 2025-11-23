@@ -45,10 +45,21 @@ export interface TableRow {
 
 // --- Domain Types (New Database Schema) ---
 
+export interface Farm {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
 export interface Employee {
   id: string;
   name: string;
   type: string; // e.g., 'Driver', 'Helper', 'Staff'
+  // Optional: calculated fields for reports
+  daysWorked?: number;
+  daysAbsent?: number;
+  totalWage?: number;
+  unpaidDebt?: number;
 }
 
 export interface Group {
@@ -85,6 +96,10 @@ export interface Travel {
     name: string;
     amount: number;
   }[];
+  // Calculated fields for reports
+  totalIncome?: number;
+  totalExpenses?: number;
+  netIncome?: number;
 }
 
 export interface Driver {
@@ -186,11 +201,13 @@ export interface LoanUsage {
 }
 
 export interface SugarcaneEntry {
+  id: number;
   price: number;
   bags: number;
 }
 
 export interface MolassesEntry {
+  id: number;
   price: number;
   kilos: number;
 }
@@ -198,11 +215,11 @@ export interface MolassesEntry {
 export interface CalculatorComputation {
   id: string;
   receiptTitle: string;
-  name: string;
+  signatureName: string;
   sugarcaneEntries: SugarcaneEntry[];
   molassesEntries: MolassesEntry[];
-  sugarcaneTotal: number;
-  molassesTotal: number;
+  totalSugarcane: number;
+  totalMolasses: number;
   grandTotal: number;
-  createdAt: string;
+  createdAt: string; // ISO Date
 }

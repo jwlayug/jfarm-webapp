@@ -1,19 +1,16 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useState } from 'react';
 import { Car, Plus, Edit2, Trash2, Loader2, Eye, ChevronUp, ChevronDown } from 'lucide-react';
-import { Driver, Employee, Travel } from '../types';
-import * as DriverService from '../services/driverService';
-import * as EmployeeService from '../services/employeeService';
-import * as TravelService from '../services/travelService';
+import { Driver } from '../types';
+import { useFarmData } from '../context/FarmContext';
 import { getDriverName } from '../utils/calculations';
 import DriverModal from '../components/modals/DriverModal';
 import DriverHistoryModal from '../components/modals/DriverHistoryModal';
 import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Drivers: React.FC = () => {
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [travels, setTravels] = useState<Travel[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { drivers, employees, travels, isLoading, services } = useFarmData();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,28 +27,6 @@ const Drivers: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const [driversData, employeesData, travelsData] = await Promise.all([
-        DriverService.getDrivers(),
-        EmployeeService.getEmployees(),
-        TravelService.getAllTravels()
-      ]);
-      setDrivers(driversData);
-      setEmployees(employeesData);
-      setTravels(travelsData);
-    } catch (error) {
-      console.error("Failed to load drivers data", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const handleAdd = () => {
     setEditingDriver(null);
@@ -77,8 +52,7 @@ const Drivers: React.FC = () => {
     if (!itemToDelete) return;
     setIsDeleting(true);
     try {
-      await DriverService.deleteDriver(itemToDelete);
-      setDrivers(prev => prev.filter(d => d.id !== itemToDelete));
+      await services.drivers.delete(itemToDelete);
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
     } catch (error) {
@@ -91,11 +65,9 @@ const Drivers: React.FC = () => {
 
   const handleSave = async (data: Omit<Driver, 'id'>) => {
     if (editingDriver) {
-      await DriverService.updateDriver(editingDriver.id, data);
-      setDrivers(prev => prev.map(d => d.id === editingDriver.id ? { ...d, ...data } : d));
+      await services.drivers.update(editingDriver.id, data);
     } else {
-      const newDriver = await DriverService.addDriver(data);
-      setDrivers(prev => [...prev, newDriver]);
+      await services.drivers.add(data);
     }
   };
 

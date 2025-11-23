@@ -1,5 +1,5 @@
 
-import { Travel, Group, Employee, Debt, Land, Driver, OtherExpense } from '../types';
+import { Travel, Group, Employee, Debt, Land, Driver, OtherExpense, Destination } from '../types';
 
 /**
  * AnalyticsEngine
@@ -139,6 +139,23 @@ export class AnalyticsEngine {
       value,
       color: colors[idx % colors.length]
     }));
+  }
+
+  static getDestinationDistribution(travels: Travel[], destinations: Destination[]) {
+    const counts: Record<string, number> = {};
+    travels.forEach(t => {
+      const destName = destinations.find(d => d.id === t.destination)?.name || 'Unknown';
+      counts[destName] = (counts[destName] || 0) + 1;
+    });
+
+    return Object.entries(counts).map(([name, value]) => {
+       const dest = destinations.find(d => d.name === name);
+       return {
+          name,
+          value,
+          color: dest?.color || '#778873'
+       };
+    }).sort((a, b) => b.value - a.value);
   }
 
   static getEmployeeEarningsReport(

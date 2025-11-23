@@ -1,7 +1,9 @@
+
 import React, { useState } from 'react';
 import { X, Calendar, Plus, RefreshCw, Edit2, Trash2, DollarSign, FileText, Loader2, AlignLeft } from 'lucide-react';
 import { Loan, LoanPayment, LoanUsage } from '../../types';
 import * as LoanService from '../../services/loanService';
+import { useFarmData } from '../../context/FarmContext';
 
 interface LoanDetailsModalProps {
   isOpen: boolean;
@@ -11,6 +13,7 @@ interface LoanDetailsModalProps {
 }
 
 const LoanDetailsModal: React.FC<LoanDetailsModalProps> = ({ isOpen, onClose, loan, onUpdate }) => {
+  const { activeFarmId } = useFarmData();
   const [activeTab, setActiveTab] = useState<'summary' | 'payments' | 'usage'>('payments');
   const [isAddingPayment, setIsAddingPayment] = useState(false);
   const [isAddingUsage, setIsAddingUsage] = useState(false);
@@ -37,7 +40,7 @@ const LoanDetailsModal: React.FC<LoanDetailsModalProps> = ({ isOpen, onClose, lo
         loanId: loan.id,
         amount: Number(paymentAmount),
         paymentDate
-      });
+      }, activeFarmId);
       setIsAddingPayment(false);
       setPaymentAmount('');
       onUpdate();
@@ -58,7 +61,7 @@ const LoanDetailsModal: React.FC<LoanDetailsModalProps> = ({ isOpen, onClose, lo
         description: usageDesc,
         amount: Number(usageAmount),
         usageDate
-      });
+      }, activeFarmId);
       setIsAddingUsage(false);
       setUsageDesc('');
       setUsageAmount('');

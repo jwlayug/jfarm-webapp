@@ -53,8 +53,46 @@ const GroupModal: React.FC<GroupModalProps> = ({
 
     setIsLoading(true);
     try {
+      let finalName = name;
+
+      // Automatically append date range for new groups (Monday - Sunday, GMT+8)
+      if (!initialData) {
+          const now = new Date();
+          // Calculate GMT+8 time
+          const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+          const gmt8 = new Date(utc + (3600000 * 8));
+          
+          // Find Monday
+          const day = gmt8.getDay(); // 0 (Sun) - 6 (Sat)
+          // If Sunday (0), subtract 6 days. Else subtract (day - 1).
+          const diff = gmt8.getDate() - day + (day === 0 ? -6 : 1);
+          
+          const monday = new Date(gmt8);
+          monday.setDate(diff);
+          
+          const sunday = new Date(monday);
+          sunday.setDate(monday.getDate() + 6);
+          
+          const months = ["November", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+          // Handle edge case where months might differ or wrapping years
+          // Using toLocaleString with specific options is safer for month names but custom array works if English fixed
+          const getMonthName = (d: Date) => d.toLocaleString('en-US', { month: 'long' });
+
+          const monMonth = getMonthName(monday);
+          const sunMonth = getMonthName(sunday);
+          
+          let dateSuffix = "";
+          if (monMonth === sunMonth) {
+             dateSuffix = `${monMonth} ${monday.getDate()} - ${sunday.getDate()}`;
+          } else {
+             dateSuffix = `${monMonth} ${monday.getDate()} - ${sunMonth} ${sunday.getDate()}`;
+          }
+          
+          finalName = `${name} - ${dateSuffix}`;
+      }
+
       const groupData: Omit<Group, 'id'> = {
-        name,
+        name: finalName,
         wage,
         employees: selectedEmployeeIds,
         created_at: initialData?.created_at || new Date().toISOString().split('T')[0] // Keep existing date or set today
@@ -99,6 +137,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
                   placeholder="e.g. Alpha Team"
                   className="w-full px-3 py-2 border border-sage-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent transition-all text-sage-800 bg-white"
                 />
+                {!initialData && <p className="text-[10px] text-sage-400 mt-1 italic">Current week date range will be appended automatically.</p>}
               </div>
 
               <div>

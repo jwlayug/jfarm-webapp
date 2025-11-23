@@ -298,7 +298,7 @@ export const EmployeePerformanceChart: React.FC<EmployeePerformanceProps> = ({ d
   </div>
 );
 
-export const LandDistributionChart: React.FC<PieChartProps> = ({ data, totalValue, title }) => (
+export const DistributionChart: React.FC<PieChartProps> = ({ data, totalValue, title }) => (
   <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-5">
     <div className="flex justify-between items-center mb-2">
        <h3 className="font-bold text-sage-700 border-l-4 border-sage-400 pl-3">{title}</h3>

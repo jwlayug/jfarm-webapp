@@ -536,8 +536,8 @@ const Summaries: React.FC = () => {
                                     <tbody className="divide-y divide-sage-100">
                                         {currentItems.map(travel => (
                                         <tr key={travel.id} className="hover:bg-sage-50 transition-colors">
-                                            {activeTab === 'land' && <td className="px-6 py-4 font-medium text-sage-800">{getLandName(travel.land)}</td>}
-                                            <td className="px-6 py-4"><div className="font-bold text-sage-800">{travel.name}</div></td>
+                                            {activeTab === 'land' && <td className="px-6 py-4 text-xs text-sage-600">{getLandName(travel.land)}</td>}
+                                            <td className="px-6 py-4 text-xs text-sage-600">{travel.name}</td>
                                             <td className="px-6 py-4 text-xs text-sage-600">{getPlateName(travel.plateNumber)} ➝ {getDestName(travel.destination)}</td>
                                             <td className="px-6 py-4 text-sm text-sage-700">{getEmployeeName(travel.driver)}</td>
                                             <td className="px-6 py-4 text-right font-medium text-sage-700">{travel.tons.toFixed(2)}</td>
@@ -672,6 +672,7 @@ const Summaries: React.FC = () => {
                                 </>
                             ) : (
                                 <>
+                                {activeTab === 'land' && <th className="px-3 py-2">Land</th>}
                                 <th className="px-3 py-2">Travel / Route</th>
                                 <th className="px-3 py-2 text-right">Tons</th>
                                 <th className="px-3 py-2 text-right">Income</th>
@@ -699,6 +700,11 @@ const Summaries: React.FC = () => {
                           </tr>
                         )) : travelSummaryData.map((t, i) => (
                              <tr key={t.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                                {activeTab === 'land' && (
+                                    <td className="px-3 py-1.5 text-slate-700 font-medium">
+                                        {getLandName(t.land)}
+                                    </td>
+                                )}
                                 <td className="px-3 py-1.5">
                                     <div className="text-slate-800 font-bold">{t.name}</div>
                                     <div className="text-[9px] text-slate-500">{getPlateName(t.plateNumber)} ➝ {getDestName(t.destination)}</div>

@@ -1,24 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Users, Calendar, Loader2, Edit2, Trash2, Truck, History, ChevronUp, ChevronDown } from 'lucide-react';
-import { Group, Employee, Land, Plate, Destination, Travel } from '../types';
-import * as GroupService from '../services/groupService';
-import * as EmployeeService from '../services/employeeService';
-import * as LandService from '../services/landService';
-import * as PlateService from '../services/plateService';
-import * as DestinationService from '../services/destinationService';
-import * as TravelService from '../services/travelService';
+
+import React, { useState } from 'react';
+import { Plus, Users, Calendar, Loader2, Edit2, Trash2, History, ChevronUp, ChevronDown } from 'lucide-react';
+import { Group, Travel } from '../types';
+import { useFarmData } from '../context/FarmContext';
 import GroupModal from '../components/modals/GroupModal';
 import TravelModal from '../components/modals/TravelModal';
 import TravelListModal from '../components/modals/TravelListModal';
 import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Groups: React.FC = () => {
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [lands, setLands] = useState<Land[]>([]);
-  const [plates, setPlates] = useState<Plate[]>([]);
-  const [destinations, setDestinations] = useState<Destination[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Use Context Data instead of local fetch
+  const { groups, employees, lands, plates, destinations, isLoading, services } = useFarmData();
 
   // Table State
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,34 +34,6 @@ const Groups: React.FC = () => {
   const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      // Fetch all required data in parallel
-      const [groupsData, employeesData, landsData, platesData, destData] = await Promise.all([
-        GroupService.getGroups(),
-        EmployeeService.getEmployees(),
-        LandService.getLands(),
-        PlateService.getPlates(),
-        DestinationService.getDestinations()
-      ]);
-      setGroups(groupsData);
-      setEmployees(employeesData);
-      setLands(landsData);
-      setPlates(platesData);
-      setDestinations(destData);
-    } catch (error) {
-      console.error("Failed to load data", error);
-      alert("Could not connect to the database.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   // --- Group Handlers ---
   const handleAddGroup = () => {
     setEditingGroup(null);
@@ -90,8 +54,7 @@ const Groups: React.FC = () => {
     if (!groupToDelete) return;
     setIsDeleting(true);
     try {
-      await GroupService.deleteGroup(groupToDelete);
-      setGroups(prev => prev.filter(g => g.id !== groupToDelete));
+      await services.groups.delete(groupToDelete);
       setIsDeleteModalOpen(false);
       setGroupToDelete(null);
     } catch (error) {
@@ -104,13 +67,9 @@ const Groups: React.FC = () => {
 
   const handleSaveGroup = async (groupData: Omit<Group, 'id'>) => {
     if (editingGroup) {
-      await GroupService.updateGroup(editingGroup.id, groupData);
-      setGroups(prev => prev.map(g => 
-        g.id === editingGroup.id ? { ...g, ...groupData } : g
-      ));
+      await services.groups.update(editingGroup.id, groupData);
     } else {
-      const newGroup = await GroupService.addGroup(groupData);
-      setGroups(prev => [newGroup, ...prev]); // Prepend so it appears first
+      await services.groups.add(groupData);
     }
   };
 
@@ -127,7 +86,6 @@ const Groups: React.FC = () => {
   };
 
   const handleEditTravelFromList = (travel: Travel) => {
-    // Close list modal, open edit modal
     setIsTravelListOpen(false);
     setEditingTravel(travel);
     setIsTravelModalOpen(true);
@@ -135,17 +93,14 @@ const Groups: React.FC = () => {
 
   const handleSaveTravel = async (travelData: Omit<Travel, 'id'>) => {
     if (editingTravel) {
-      await TravelService.updateTravel(editingTravel.id, travelData);
-      // Note: We don't strictly need to update local state for travels here 
-      // because the list modal fetches fresh data when opened.
+      await services.travels.update(editingTravel.id, travelData);
     } else {
-      await TravelService.addTravel(travelData);
+      await services.travels.add(travelData);
     }
   };
 
   const filteredGroups = groups
-    .filter(group => group.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    .filter(group => group.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredGroups.length / entriesPerPage);
@@ -322,7 +277,6 @@ const Groups: React.FC = () => {
         </div>
       </div>
 
-      {/* Group Add/Edit Modal */}
       <GroupModal 
         isOpen={isGroupModalOpen} 
         onClose={() => setIsGroupModalOpen(false)} 
@@ -331,7 +285,6 @@ const Groups: React.FC = () => {
         availableEmployees={employees}
       />
 
-      {/* Travel Add/Edit Modal */}
       <TravelModal
         isOpen={isTravelModalOpen}
         onClose={() => setIsTravelModalOpen(false)}
@@ -344,7 +297,6 @@ const Groups: React.FC = () => {
         destinations={destinations}
       />
 
-      {/* Travel History List Modal */}
       <TravelListModal
         isOpen={isTravelListOpen}
         onClose={() => setIsTravelListOpen(false)}

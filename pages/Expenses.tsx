@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Receipt, Plus, Calendar, ChevronUp, ChevronDown, Loader2, Edit2, Trash2 } from 'lucide-react';
 import { OtherExpense } from '../types';
-import * as ExpenseService from '../services/expenseService';
+import { useFarmData } from '../context/FarmContext';
 import ExpenseModal from '../components/modals/ExpenseModal';
 import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Expenses: React.FC = () => {
-  const [expenses, setExpenses] = useState<OtherExpense[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { expenses, isLoading, services } = useFarmData();
   const [searchQuery, setSearchQuery] = useState('');
   
   // Pagination State
@@ -22,23 +22,6 @@ const Expenses: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // Fetch Data
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const data = await ExpenseService.getExpenses();
-      setExpenses(data);
-    } catch (error) {
-      console.error("Failed to load expenses", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   // Actions
   const handleAdd = () => {
@@ -60,8 +43,7 @@ const Expenses: React.FC = () => {
     if (!itemToDelete) return;
     setIsDeleting(true);
     try {
-      await ExpenseService.deleteExpense(itemToDelete);
-      setExpenses(prev => prev.filter(e => e.id !== itemToDelete));
+      await services.expenses.delete(itemToDelete);
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
     } catch (error) {
@@ -73,11 +55,9 @@ const Expenses: React.FC = () => {
 
   const handleSave = async (data: Omit<OtherExpense, 'id'>) => {
     if (editingExpense) {
-      await ExpenseService.updateExpense(editingExpense.id, data);
-      setExpenses(prev => prev.map(e => e.id === editingExpense.id ? { ...e, ...data } : e));
+      await services.expenses.update(editingExpense.id, data);
     } else {
-      const newExpense = await ExpenseService.addExpense(data);
-      setExpenses(prev => [newExpense, ...prev]);
+      await services.expenses.add(data);
     }
   };
 

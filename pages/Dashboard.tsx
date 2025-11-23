@@ -13,7 +13,7 @@ import {
   StatCard,
   RevenueChart,
   EmployeePerformanceChart,
-  LandDistributionChart,
+  DistributionChart,
   DebtStatusCard,
   RecentActivities,
   RecentTravelsTable,
@@ -53,6 +53,11 @@ const Dashboard: React.FC = () => {
   const landChartData = useMemo(() => 
     AnalyticsEngine.getLandDistribution(travels, lands), 
     [travels, lands]
+  );
+
+  const destinationChartData = useMemo(() => 
+    AnalyticsEngine.getDestinationDistribution(travels, destinations),
+    [travels, destinations]
   );
 
   const expenseData = useMemo(() => 
@@ -129,6 +134,7 @@ const Dashboard: React.FC = () => {
           <TargetCard totalTons={globalStats.totalTons} />
           <RecentTravelsList travels={sortedTravels} getLandName={getLandName} getDestName={getDestName} />
           <DailyTonnageChart data={tonnageChartData} />
+          <DistributionChart data={destinationChartData} totalValue={travels.length} title="Travels by Destination" />
           <ExpenseStructureChart data={expenseData} />
         </div>
 
@@ -164,19 +170,22 @@ const Dashboard: React.FC = () => {
              />
           </div>
           <RevenueChart data={revenueChartData} />
-          <EmployeePerformanceChart data={employeePerformance} />
         </div>
 
         {/* RIGHT COLUMN */}
         <div className="md:col-span-1 xl:col-span-3 flex flex-col gap-6 order-3">
-          <LandDistributionChart data={landChartData} totalValue={travels.length} title="Travels by Land" />
+          <DistributionChart data={landChartData} totalValue={travels.length} title="Travels by Land" />
           <DebtStatusCard paidCount={debtStats.paid} unpaidCount={debtStats.unpaid} totalUnpaid={globalStats.unpaidDebts} />
           <RecentActivities />
           <GroupProductivityChart data={groupPerformanceData} />
         </div>
 
-        {/* BOTTOM ROW */}
+        {/* FULL WIDTH ROWS */}
         <div className="col-span-1 md:col-span-2 xl:col-span-12 order-4">
+          <EmployeePerformanceChart data={employeePerformance} />
+        </div>
+
+        <div className="col-span-1 md:col-span-2 xl:col-span-12 order-5">
           <RecentTravelsTable 
              travels={sortedTravels} 
              getLandName={getLandName} 

@@ -122,6 +122,14 @@ const TravelModal: React.FC<TravelModalProps> = ({
     setExpenses(expenses.filter((_, i) => i !== index));
   };
 
+   const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!landId || !plateId || !destinationId || !driverId) {
@@ -138,7 +146,7 @@ const TravelModal: React.FC<TravelModalProps> = ({
       }));
 
       // Create name automatically based on Ticket or Land
-      const generatedName = ticket ? `Ticket #${ticket}` : `Trip to ${lands.find(l => l.id === landId)?.name}`;
+      const generatedName = ticket ? `${formatDate(date)} - ${ticket}` : `Trip to ${lands.find(l => l.id === landId)?.name}`;
 
       const travelData: Omit<Travel, 'id'> = {
         name: generatedName,

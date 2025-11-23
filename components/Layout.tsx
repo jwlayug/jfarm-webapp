@@ -20,8 +20,6 @@ const Layout: React.FC<LayoutProps> = ({
       <Sidebar 
         isOpen={sidebarOpen} 
         setIsOpen={setSidebarOpen} 
-        currentPage={currentPage}
-        onNavigate={onNavigate}
       />
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
         <Header setSidebarOpen={setSidebarOpen} />
