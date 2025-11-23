@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ArrowUp, ArrowDown, MoreVertical, ExternalLink, Filter, Download, FileText, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
 import {
@@ -21,6 +22,10 @@ interface RevenueChartProps {
     data: { name: string; income: number; expense: number; profit: number }[];
 }
 
+interface EmployeePerformanceProps {
+    data: { name: string; totalWage: number; daysWorked: number; unpaidDebt: number }[];
+}
+
 interface PieChartProps {
     data: { name: string; value: number; color: string }[];
     totalValue: number;
@@ -38,12 +43,21 @@ interface RecentTravelsTableProps {
     getLandName: (id: string) => string;
     getPlateName: (id: string) => string;
     getDriverName: (id: string) => string;
+    onView: (travel: Travel) => void;
 }
 
 interface DebtStatusProps {
     paidCount: number;
     unpaidCount: number;
     totalUnpaid: number;
+}
+
+interface GroupProductivityProps {
+    data: { name: string; value: number }[];
+}
+
+interface DailyTonnageProps {
+    data: { name: string; tons: number }[];
 }
 
 export const WelcomeSection: React.FC = () => (
@@ -73,7 +87,7 @@ export const TargetCard: React.FC<{ totalTons: number }> = ({ totalTons }) => (
 
 export const RecentTravelsList: React.FC<RecentTravelsListProps> = ({ travels, getLandName, getDestName }) => {
   const [page, setPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 2; // Reduced to 2 for compactness
   const totalPages = Math.ceil(travels.length / itemsPerPage);
   
   const currentData = travels.slice((page - 1) * itemsPerPage, page * itemsPerPage);
@@ -82,8 +96,8 @@ export const RecentTravelsList: React.FC<RecentTravelsListProps> = ({ travels, g
   const handleNext = () => setPage(p => Math.min(totalPages, p + 1));
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-5 flex-1 flex flex-col">
-      <div className="flex justify-between items-center mb-4">
+    <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-5 flex flex-col">
+      <div className="flex justify-between items-center mb-3">
          <h3 className="font-bold text-sage-700 border-l-4 border-sage-400 pl-3">Recent Travels</h3>
          {travels.length > itemsPerPage && (
             <div className="flex gap-1">
@@ -104,29 +118,49 @@ export const RecentTravelsList: React.FC<RecentTravelsListProps> = ({ travels, g
             </div>
          )}
       </div>
-      <div className="flex flex-col gap-4 flex-1">
+      <div className="flex flex-col gap-3">
          {currentData.map(travel => (
             <div key={travel.id} className="flex items-center gap-3 pb-3 border-b border-sage-50 last:border-0 last:pb-0">
-               <div className="w-10 h-10 rounded-full bg-sage-100 flex items-center justify-center text-sage-600 font-bold text-xs">
+               <div className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-600 font-bold text-[10px]">
                   {travel.ticket ? 'T' : 'L'}
                </div>
-               <div className="flex-1">
-                  <div className="text-sm font-semibold text-sage-800">{travel.name}</div>
-                  <div className="text-xs text-gray-400">{getLandName(travel.land)} ➝ {getDestName(travel.destination)}</div>
+               <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-sage-800 truncate">{travel.name}</div>
+                  <div className="text-xs text-gray-400 truncate">{getLandName(travel.land)} ➝ {getDestName(travel.destination)}</div>
                </div>
-               <div className="font-bold text-sage-600 text-sm">{travel.tons}t</div>
+               <div className="font-bold text-sage-600 text-xs">{travel.tons}t</div>
             </div>
          ))}
          {travels.length === 0 && <p className="text-sm text-gray-400 italic">No travels recorded yet.</p>}
       </div>
-      {totalPages > 1 && (
-        <div className="mt-2 text-xs text-center text-gray-400">
-           Page {page} of {totalPages}
-        </div>
-      )}
     </div>
   );
 };
+
+export const DailyTonnageChart: React.FC<DailyTonnageProps> = ({ data }) => (
+  <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-5">
+    <h3 className="font-bold text-sage-700 border-l-4 border-sage-400 pl-3 mb-2">Daily Production</h3>
+    <div className="h-40 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data}>
+          <defs>
+            <linearGradient id="colorTons" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#778873" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#778873" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+          <XAxis dataKey="name" hide />
+          <Tooltip 
+            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+            formatter={(value: number) => [`${value} tons`, 'Production']}
+          />
+          <Area type="monotone" dataKey="tons" stroke="#778873" strokeWidth={2} fillOpacity={1} fill="url(#colorTons)" />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  </div>
+);
 
 export const StatCard: React.FC<StatCardProps> = ({ label, value, trend, trendUp, data, color, icon: Icon }) => (
   <div className="bg-white p-5 rounded-xl shadow-sm border border-sage-100 hover:shadow-md transition-shadow">
@@ -171,7 +205,7 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => (
     <div className="flex justify-between items-start mb-6">
        <div>
           <h3 className="font-bold text-sage-700 border-l-4 border-sage-400 pl-3 text-lg">Financial Analytics</h3>
-          <p className="text-xs text-gray-400 mt-1 pl-4">Income vs Expenses (Weekly)</p>
+          <p className="text-xs text-gray-400 mt-1 pl-4">Income vs Expenses (Daily)</p>
        </div>
     </div>
     <div className="h-[320px] w-full">
@@ -199,10 +233,9 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => (
              <Area type="monotone" dataKey="expense" name="Expense" stroke="#ef4444" strokeWidth={3} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorExpense)" />
              <Brush 
                 dataKey="name" 
-                height={25} 
+                height={30} 
                 stroke="#778873" 
                 fill="#F1F3E0"
-                tickFormatter={() => ''} 
              />
           </AreaChart>
        </ResponsiveContainer>
@@ -213,6 +246,53 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => (
        </div>
        <div className="flex items-center gap-2 text-xs text-gray-500">
           <span className="w-3 h-3 rounded-full bg-red-500"></span> Expenses
+       </div>
+    </div>
+  </div>
+);
+
+export const EmployeePerformanceChart: React.FC<EmployeePerformanceProps> = ({ data }) => (
+  <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-6 flex-1 flex flex-col h-[500px]">
+    <div className="flex justify-between items-center mb-4 shrink-0">
+       <div>
+           <h3 className="font-bold text-sage-700 border-l-4 border-sage-400 pl-3 text-lg">Employee Financials</h3>
+           <p className="text-xs text-gray-400 mt-1 pl-4">Earnings (Green) vs Debt (Red)</p>
+       </div>
+       {/* Legend */}
+       <div className="flex gap-3 text-xs">
+          <div className="flex items-center gap-1"><div className="w-3 h-3 bg-[#778873] rounded-sm"></div> Earnings</div>
+          <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-400 rounded-sm"></div> Debt</div>
+       </div>
+    </div>
+    
+    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+       <div style={{ height: `${Math.max(data.length * 60, 300)}px` }}>
+           <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#F3F4F6" />
+                 <XAxis type="number" hide />
+                 <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{fill: '#4B5563', fontSize: 11, fontWeight: 600}} 
+                    width={100}
+                    interval={0} // Show all ticks
+                 />
+                 <Tooltip 
+                    cursor={{fill: '#F1F3E0', opacity: 0.5}}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                    formatter={(value: number, name: string) => {
+                        if (name === 'Earnings') return [`₱${value.toLocaleString()}`, 'Earnings'];
+                        if (name === 'Debt') return [`₱${value.toLocaleString()}`, 'Debt'];
+                        return [value, name];
+                    }}
+                 />
+                 <Bar dataKey="totalWage" name="Earnings" stackId="a" fill="#778873" radius={[0, 0, 0, 0]} barSize={20} />
+                 <Bar dataKey="unpaidDebt" name="Debt" stackId="a" fill="#F87171" radius={[0, 4, 4, 0]} barSize={20} />
+              </BarChart>
+           </ResponsiveContainer>
        </div>
     </div>
   </div>
@@ -260,6 +340,72 @@ export const LandDistributionChart: React.FC<PieChartProps> = ({ data, totalValu
   </div>
 );
 
+export const ExpenseStructureChart: React.FC<{ data: { name: string, value: number, color: string }[] }> = ({ data }) => (
+    <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-5 mt-6">
+        <h3 className="font-bold text-sage-700 border-l-4 border-sage-400 pl-3 mb-4">Expenses</h3>
+        <div className="h-48 relative">
+            <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                    <Pie
+                        data={data}
+                        innerRadius={40}
+                        outerRadius={65}
+                        paddingAngle={2}
+                        dataKey="value"
+                    >
+                        {data.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
+                        ))}
+                    </Pie>
+                    <Tooltip formatter={(val: number) => `₱${val.toLocaleString()}`} />
+                </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                 <span className="text-[10px] text-gray-400">Total</span>
+                 <span className="text-sm font-bold text-sage-800">₱{(data.reduce((a,b)=>a+b.value,0)/1000).toFixed(1)}k</span>
+            </div>
+        </div>
+        <div className="space-y-2 mt-2">
+            {data.map(item => (
+                <div key={item.name} className="flex justify-between items-center text-xs">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div>
+                        <span className="text-gray-600">{item.name}</span>
+                    </div>
+                    <span className="font-bold text-sage-700">₱{item.value.toLocaleString()}</span>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+export const GroupProductivityChart: React.FC<GroupProductivityProps> = ({ data }) => (
+    <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-5 mt-6">
+        <h3 className="font-bold text-sage-700 border-l-4 border-sage-400 pl-3 mb-2">Top Groups (Tons)</h3>
+        <div className="h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data} layout="vertical" margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#F3F4F6" />
+                    <XAxis type="number" hide />
+                    <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{fill: '#6B7280', fontSize: 10, fontWeight: 600}} 
+                        width={70}
+                    />
+                    <Tooltip 
+                        cursor={{fill: '#F1F3E0', opacity: 0.5}}
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                    />
+                    <Bar dataKey="value" fill="#778873" radius={[0, 4, 4, 0]} barSize={15} />
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    </div>
+);
+
 export const DebtStatusCard: React.FC<DebtStatusProps> = ({ paidCount, unpaidCount, totalUnpaid }) => (
   <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-5">
      <div className="flex justify-between items-center mb-6">
@@ -275,11 +421,11 @@ export const DebtStatusCard: React.FC<DebtStatusProps> = ({ paidCount, unpaidCou
     </div>
     <div className="space-y-3">
        <div className="flex justify-between items-center text-sm">
-          <div className="flex items-center gap-2 text-gray-600"><CheckCircle size={14} className="text-green-500"/> Fully Paid Loans</div>
+          <div className="flex items-center gap-2 text-gray-600"><CheckCircle size={14} className="text-green-500"/> Fully Paid Debts</div>
           <span className="font-medium text-gray-400">{paidCount}</span>
        </div>
        <div className="flex justify-between items-center text-sm">
-          <div className="flex items-center gap-2 text-gray-600"><AlertCircle size={14} className="text-red-400"/> Outstanding Loans</div>
+          <div className="flex items-center gap-2 text-gray-600"><AlertCircle size={14} className="text-red-400"/> Outstanding Debts</div>
           <span className="font-medium text-gray-400">{unpaidCount}</span>
        </div>
     </div>
@@ -287,11 +433,11 @@ export const DebtStatusCard: React.FC<DebtStatusProps> = ({ paidCount, unpaidCou
 );
 
 export const RecentActivities: React.FC = () => (
-    <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-5 flex-1">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-5 flex flex-col">
+      <div className="flex justify-between items-center mb-3">
          <h3 className="font-bold text-sage-700 border-l-4 border-sage-400 pl-3">System Activity</h3>
       </div>
-      <div className="relative pl-4 border-l border-dashed border-gray-300 space-y-6">
+      <div className="relative pl-4 border-l border-dashed border-gray-300 space-y-4">
          <div className="relative">
             <span className="absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 border-white shadow-sm bg-green-400"></span>
             <div>
@@ -303,7 +449,7 @@ export const RecentActivities: React.FC = () => (
     </div>
   );
 
-export const RecentTravelsTable: React.FC<RecentTravelsTableProps> = ({ travels, getLandName, getPlateName, getDriverName }) => {
+export const RecentTravelsTable: React.FC<RecentTravelsTableProps> = ({ travels, getLandName, getPlateName, getDriverName, onView }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(5);
   const [searchQuery, setSearchQuery] = useState('');
@@ -358,7 +504,7 @@ export const RecentTravelsTable: React.FC<RecentTravelsTableProps> = ({ travels,
           <table className="w-full text-left border-collapse">
              <thead>
                 <tr className="bg-sage-50 border-b border-sage-200 text-xs font-bold text-sage-600 uppercase tracking-wider">
-                   <th className="px-6 py-4">Date</th>
+                   {/* <th className="px-6 py-4">Date</th> */}
                    <th className="px-6 py-4">Travel Name</th>
                    <th className="px-6 py-4">Land / Route</th>
                    <th className="px-6 py-4">Driver</th>
@@ -369,10 +515,10 @@ export const RecentTravelsTable: React.FC<RecentTravelsTableProps> = ({ travels,
              <tbody className="divide-y divide-sage-100">
                 {currentItems.length > 0 ? currentItems.map((row) => (
                    <tr key={row.id} className="hover:bg-sage-50 transition-colors">
-                      <td className="px-6 py-4 text-gray-600 text-sm">{row.date || 'N/A'}</td>
+                      {/* <td className="px-6 py-4 text-gray-600 text-sm">{row.date || 'N/A'}</td> */}
                       <td className="px-6 py-4">
                          <div className="font-medium text-sage-800 text-sm">{row.name}</div>
-                         {row.ticket && <div className="text-xs text-blue-50 bg-blue-50 inline-block px-1 rounded">{row.ticket}</div>}
+                         {row.ticket && <div className="text-xs text-sage-800 bg-blue-50 inline-block px-1 rounded">{row.ticket}</div>}
                       </td>
                       <td className="px-6 py-4 text-gray-600 text-sm">
                          {getLandName(row.land)}
@@ -381,7 +527,13 @@ export const RecentTravelsTable: React.FC<RecentTravelsTableProps> = ({ travels,
                       <td className="px-6 py-4 text-gray-600 text-sm">{getDriverName(row.driver)}</td>
                       <td className="px-6 py-4 text-right font-mono text-sage-700">{row.tons}</td>
                       <td className="px-6 py-4 text-right">
-                         <button className="p-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100"><FileText size={14}/></button>
+                         <button 
+                            onClick={() => onView(row)}
+                            className="p-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 cursor-pointer transition-colors"
+                            title="View Details"
+                          >
+                            <FileText size={14}/>
+                          </button>
                       </td>
                    </tr>
                 )) : (

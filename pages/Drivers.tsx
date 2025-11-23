@@ -7,6 +7,7 @@ import * as TravelService from '../services/travelService';
 import { getDriverName } from '../utils/calculations';
 import DriverModal from '../components/modals/DriverModal';
 import DriverHistoryModal from '../components/modals/DriverHistoryModal';
+import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Drivers: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -24,6 +25,11 @@ const Drivers: React.FC = () => {
   // History Modal
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [viewingDriver, setViewingDriver] = useState<Driver | null>(null);
+
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -62,15 +68,24 @@ const Drivers: React.FC = () => {
     setIsHistoryOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this driver?')) {
-      try {
-        await DriverService.deleteDriver(id);
-        setDrivers(prev => prev.filter(d => d.id !== id));
-      } catch (error) {
-        console.error("Failed to delete driver", error);
-        alert("Failed to delete driver");
-      }
+  const handleDeleteClick = (id: string) => {
+    setItemToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
+    try {
+      await DriverService.deleteDriver(itemToDelete);
+      setDrivers(prev => prev.filter(d => d.id !== itemToDelete));
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete driver", error);
+      alert("Failed to delete driver");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -188,7 +203,7 @@ const Drivers: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 text-sage-500 text-xs font-mono">{driver.employeeId}</td>
                         <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex justify-end gap-2">
                             <button 
                                 onClick={() => handleViewHistory(driver)}
                                 className="p-1.5 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
@@ -204,7 +219,7 @@ const Drivers: React.FC = () => {
                                 <Edit2 size={16} />
                             </button>
                             <button 
-                                onClick={() => handleDelete(driver.id)}
+                                onClick={() => handleDeleteClick(driver.id)}
                                 className="p-1.5 text-red-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                                 title="Delete Driver"
                             >
@@ -275,6 +290,15 @@ const Drivers: React.FC = () => {
         driver={viewingDriver}
         employee={viewingDriver ? employees.find(e => e.id === viewingDriver.employeeId) || null : null}
         travels={travels}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Driver"
+        message="Are you sure you want to delete this driver? This action cannot be undone."
+        isLoading={isDeleting}
       />
     </div>
   );

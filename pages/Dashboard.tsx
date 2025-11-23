@@ -1,13 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+
+import React, { useMemo, useState } from 'react';
 import { Users, DollarSign, Layers, CreditCard, Loader2 } from 'lucide-react';
-import * as TravelService from '../services/travelService';
-import * as EmployeeService from '../services/employeeService';
-import * as DebtService from '../services/debtService';
-import * as LandService from '../services/landService';
-import * as GroupService from '../services/groupService';
-import * as PlateService from '../services/plateService';
-import * as DestinationService from '../services/destinationService';
-import { Travel, Employee, Debt, Land, Group, Plate, Destination } from '../types';
+import { useFarmData } from '../context/FarmContext';
+import { AnalyticsEngine } from '../utils/AnalyticsEngine';
+import { Travel } from '../types';
+import TravelDetailsModal from '../components/modals/TravelDetailsModal';
 
 import {
   WelcomeSection,
@@ -15,182 +12,102 @@ import {
   RecentTravelsList,
   StatCard,
   RevenueChart,
+  EmployeePerformanceChart,
   LandDistributionChart,
   DebtStatusCard,
   RecentActivities,
-  RecentTravelsTable
+  RecentTravelsTable,
+  ExpenseStructureChart,
+  GroupProductivityChart,
+  DailyTonnageChart
 } from '../features/dashboard/DashboardWidgets';
 
 const Dashboard: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [travels, setTravels] = useState<Travel[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [debts, setDebts] = useState<Debt[]>([]);
-  const [lands, setLands] = useState<Land[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [plates, setPlates] = useState<Plate[]>([]);
-  const [destinations, setDestinations] = useState<Destination[]>([]);
+  // Consume global real-time data
+  const { 
+    travels, employees, debts, lands, groups, plates, destinations, drivers, expenses,
+    isLoading 
+  } = useFarmData();
 
-  useEffect(() => {
-    const fetchAllData = async () => {
-      try {
-        const [
-          travelsData, 
-          employeesData, 
-          debtsData, 
-          landsData,
-          groupsData,
-          platesData,
-          destData
-        ] = await Promise.all([
-          TravelService.getAllTravels(),
-          EmployeeService.getEmployees(),
-          DebtService.getDebts(),
-          LandService.getLands(),
-          GroupService.getGroups(),
-          PlateService.getPlates(),
-          DestinationService.getDestinations()
-        ]);
+  // --- Modal State ---
+  const [viewingTravel, setViewingTravel] = useState<Travel | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-        // Sort travels by date desc if available, else by ID
-        const sortedTravels = travelsData.sort((a, b) => {
-           const dateA = a.date ? new Date(a.date).getTime() : 0;
-           const dateB = b.date ? new Date(b.date).getTime() : 0;
-           return dateB - dateA;
-        });
+  // --- ANALYTICS (Processed via OOP Engine) ---
+  
+  const globalStats = useMemo(() => 
+    AnalyticsEngine.getGlobalStats(travels, groups, employees, debts), 
+    [travels, groups, employees, debts]
+  );
 
-        setTravels(sortedTravels);
-        setEmployees(employeesData);
-        setDebts(debtsData);
-        setLands(landsData);
-        setGroups(groupsData);
-        setPlates(platesData);
-        setDestinations(destData);
-      } catch (error) {
-        console.error("Failed to load dashboard data", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAllData();
-  }, []);
+  const revenueChartData = useMemo(() => 
+      AnalyticsEngine.getDailyRevenueData(travels, groups), 
+    [travels, groups]
+  );
 
-  // --- HELPERS ---
+  const tonnageChartData = useMemo(() => 
+    AnalyticsEngine.getDailyTonnageData(travels),
+    [travels]
+  );
+
+  const landChartData = useMemo(() => 
+    AnalyticsEngine.getLandDistribution(travels, lands), 
+    [travels, lands]
+  );
+
+  const expenseData = useMemo(() => 
+    AnalyticsEngine.getExpenseBreakdown(travels, groups, expenses),
+    [travels, groups, expenses]
+  );
+
+  const groupPerformanceData = useMemo(() => 
+    AnalyticsEngine.getGroupPerformance(travels, groups),
+    [travels, groups]
+  );
+
+  const employeePerformance = useMemo(() => {
+    return AnalyticsEngine.getEmployeeEarningsReport(employees, travels, groups, debts, drivers)
+      .sort((a, b) => b.totalWage - a.totalWage)
+      .map(emp => ({ 
+        name: emp.name, 
+        totalWage: emp.totalWage, 
+        daysWorked: emp.daysWorked,
+        unpaidDebt: emp.unpaidDebt
+      }));
+  }, [employees, travels, groups, debts, drivers]);
+
+  const debtStats = useMemo(() => ({
+      paid: debts.filter(d => d.paid).length,
+      unpaid: debts.filter(d => !d.paid).length
+  }), [debts]);
+
+  // Sort travels for lists (UI logic)
+  const sortedTravels = useMemo(() => 
+    [...travels].sort((a, b) => {
+       const getDate = (t: Travel) => {
+          // 1. Try parsing the Name as user names travels by date (e.g. "November 17, 2025")
+          const nameTime = new Date(t.name).getTime();
+          if (!isNaN(nameTime)) return nameTime;
+          
+          // 2. Fallback to explicit date field
+          if (t.date) return new Date(t.date).getTime();
+          return 0;
+       };
+
+       return getDate(b) - getDate(a);
+    }), 
+  [travels]);
+
+  // Helpers for Child Components
   const getLandName = (id: string) => lands.find(l => l.id === id)?.name || id;
   const getPlateName = (id: string) => plates.find(p => p.id === id)?.name || id;
   const getDestName = (id: string) => destinations.find(d => d.id === id)?.name || id;
   const getDriverName = (id: string) => employees.find(e => e.id === id)?.name || id;
 
-  // --- ANALYTICS ---
-
-  const totalEmployees = employees.length;
-  const totalGroups = groups.length;
-  const totalDebtsUnpaid = debts.reduce((sum, d) => !d.paid ? sum + d.amount : sum, 0);
-  const totalTons = travels.reduce((sum, t) => sum + (t.tons || 0), 0);
-
-  // Financials
-  const financialSummary = useMemo(() => {
-    let totalIncome = 0;
-    let totalExpense = 0;
-
-    travels.forEach(t => {
-       const income = ((t.sugarcane_price || 0) * (t.bags || 0)) + ((t.molasses_price || 0) * (t.molasses || 0));
-       
-       const group = groups.find(g => g.id === t.groupId);
-       const wageRate = group?.wage || 0;
-       const wages = (t.tons || 0) * wageRate;
-       const otherExp = t.expenses?.reduce((s, e) => s + e.amount, 0) || 0;
-       const expense = wages + (t.driverTip || 0) + otherExp;
-
-       totalIncome += income;
-       totalExpense += expense;
-    });
-    return { totalIncome, totalExpense, net: totalIncome - totalExpense };
-  }, [travels, groups]);
-
-  // Revenue Chart Data (Weekly - Current Year)
-  const revenueChartData = useMemo(() => {
-     const weekMap: Record<string, { income: number, expense: number, dateVal: number }> = {};
-     const currentYear = new Date().getFullYear();
-
-     // Helper to get Monday of the week for a given date object
-     const getMonday = (d: Date) => {
-        const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-        return new Date(d.setDate(diff));
-     };
-
-     travels.forEach(t => {
-        if (!t.date) return;
-        
-        // Force interpretation as local date based on YYYY-MM-DD string to match "GMT+8" user intent
-        // splitting prevents timezone offsets from shifting the day
-        const parts = t.date.split('-');
-        if (parts.length !== 3) return;
-        
-        const year = parseInt(parts[0]);
-        const month = parseInt(parts[1]) - 1; // JS months are 0-11
-        const day = parseInt(parts[2]);
-        const d = new Date(year, month, day);
-
-        // Filter for Current Year
-        if (d.getFullYear() === currentYear) {
-            // Get Start of Week (Monday)
-            const monday = getMonday(new Date(d.getTime())); // clone to avoid mutation
-            monday.setHours(0, 0, 0, 0);
-            
-            const sortKey = monday.getTime();
-
-            if (!weekMap[sortKey]) {
-                weekMap[sortKey] = { income: 0, expense: 0, dateVal: sortKey };
-            }
-            
-            const income = ((t.sugarcane_price || 0) * (t.bags || 0)) + ((t.molasses_price || 0) * (t.molasses || 0));
-            
-            const group = groups.find(g => g.id === t.groupId);
-            const wages = (t.tons || 0) * (group?.wage || 0);
-            const otherExp = t.expenses?.reduce((s, e) => s + e.amount, 0) || 0;
-            const expense = wages + (t.driverTip || 0) + otherExp;
-
-            weekMap[sortKey].income += income;
-            weekMap[sortKey].expense += expense;
-        }
-     });
-
-     return Object.values(weekMap)
-        .sort((a, b) => a.dateVal - b.dateVal)
-        .map(item => ({
-            name: new Date(item.dateVal).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            income: item.income,
-            expense: item.expense,
-            profit: item.income - item.expense
-        }));
-
-  }, [travels, groups]);
-
-  // Land Distribution Data (Pie Chart)
-  const landChartData = useMemo(() => {
-     const counts: Record<string, number> = {};
-     travels.forEach(t => {
-        const name = getLandName(t.land);
-        counts[name] = (counts[name] || 0) + 1;
-     });
-
-     const colors = ['#778873', '#A1BC98', '#D2DCB6', '#E5ECD0', '#F87171'];
-     return Object.entries(counts).map(([name, value], idx) => ({
-        name,
-        value,
-        color: colors[idx % colors.length]
-     }));
-  }, [travels, lands]);
-
-  // Debt Stats
-  const debtStats = useMemo(() => {
-      const paid = debts.filter(d => d.paid).length;
-      const unpaid = debts.filter(d => !d.paid).length;
-      return { paid, unpaid };
-  }, [debts]);
-
+  const handleViewTravel = (travel: Travel) => {
+    setViewingTravel(travel);
+    setIsModalOpen(true);
+  };
 
   if (isLoading) {
       return (
@@ -200,63 +117,87 @@ const Dashboard: React.FC = () => {
       );
   }
 
+  const activeGroup = viewingTravel ? groups.find(g => g.id === viewingTravel.groupId) || null : null;
+
   return (
     <>
       <WelcomeSection />
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-6">
-        {/* LEFT COLUMN (3 spans desktop, 1 span mobile/tablet) */}
+        {/* LEFT COLUMN */}
         <div className="md:col-span-1 xl:col-span-3 flex flex-col gap-6 order-2 xl:order-1">
-          <TargetCard totalTons={totalTons} />
-          <RecentTravelsList travels={travels} getLandName={getLandName} getDestName={getDestName} />
+          <TargetCard totalTons={globalStats.totalTons} />
+          <RecentTravelsList travels={sortedTravels} getLandName={getLandName} getDestName={getDestName} />
+          <DailyTonnageChart data={tonnageChartData} />
+          <ExpenseStructureChart data={expenseData} />
         </div>
 
-        {/* MIDDLE COLUMN (6 spans desktop, 2 spans tablet) */}
+        {/* MIDDLE COLUMN */}
         <div className="md:col-span-2 xl:col-span-6 flex flex-col gap-6 order-1 xl:order-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
              <StatCard 
                 label="Total Revenue" 
-                value={`₱${financialSummary.totalIncome.toLocaleString()}`} 
+                value={`₱${globalStats.totalRevenue.toLocaleString(undefined, {maximumFractionDigits: 0})}`} 
                 color="#778873" 
                 icon={DollarSign} 
                 trend={12} trendUp={true}
-                data={[10, 20, 15, 30, 25, 40]} // Mock sparkline for now as historical aggregation is complex
+                data={[10, 20, 15, 30, 25, 40]} 
              />
              <StatCard 
                 label="Employees" 
-                value={totalEmployees.toString()} 
+                value={globalStats.totalEmployees.toString()} 
                 color="#A1BC98" 
                 icon={Users} 
              />
              <StatCard 
                 label="Active Groups" 
-                value={totalGroups.toString()} 
+                value={globalStats.activeGroups.toString()} 
                 color="#D2DCB6" 
                 icon={Layers} 
              />
               <StatCard 
                 label="Unpaid Debt" 
-                value={`₱${totalDebtsUnpaid.toLocaleString()}`} 
+                value={`₱${globalStats.unpaidDebts.toLocaleString()}`} 
                 color="#F87171" 
                 icon={CreditCard} 
                 trend={5} trendUp={false}
              />
           </div>
           <RevenueChart data={revenueChartData} />
+          <EmployeePerformanceChart data={employeePerformance} />
         </div>
 
-        {/* RIGHT COLUMN (3 spans desktop, 1 span tablet) */}
+        {/* RIGHT COLUMN */}
         <div className="md:col-span-1 xl:col-span-3 flex flex-col gap-6 order-3">
           <LandDistributionChart data={landChartData} totalValue={travels.length} title="Travels by Land" />
-          <DebtStatusCard paidCount={debtStats.paid} unpaidCount={debtStats.unpaid} totalUnpaid={totalDebtsUnpaid} />
+          <DebtStatusCard paidCount={debtStats.paid} unpaidCount={debtStats.unpaid} totalUnpaid={globalStats.unpaidDebts} />
           <RecentActivities />
+          <GroupProductivityChart data={groupPerformanceData} />
         </div>
 
-        {/* BOTTOM ROW (Full Width) - Deals Statistics Table */}
+        {/* BOTTOM ROW */}
         <div className="col-span-1 md:col-span-2 xl:col-span-12 order-4">
-          <RecentTravelsTable travels={travels} getLandName={getLandName} getPlateName={getPlateName} getDriverName={getDriverName} />
+          <RecentTravelsTable 
+             travels={sortedTravels} 
+             getLandName={getLandName} 
+             getPlateName={getPlateName} 
+             getDriverName={getDriverName}
+             onView={handleViewTravel}
+          />
         </div>
       </div>
+
+      {/* Detail Modal */}
+      <TravelDetailsModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        travel={viewingTravel}
+        group={activeGroup}
+        employees={employees}
+        lands={lands}
+        plates={plates}
+        destinations={destinations}
+      />
     </>
   );
 };

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Disc, Plus, Trash2, Edit2, Loader2 } from 'lucide-react';
+import { Hash, Plus, Trash2, Edit2, Loader2 } from 'lucide-react';
 import { Plate } from '../types';
 import * as PlateService from '../services/plateService';
 import PlateModal from '../components/modals/PlateModal';
+import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Plates: React.FC = () => {
   const [plates, setPlates] = useState<Plate[]>([]);
@@ -14,6 +15,11 @@ const Plates: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -41,14 +47,23 @@ const Plates: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure? This cannot be undone.')) {
-      try {
-        await PlateService.deletePlate(id);
-        setPlates(prev => prev.filter(p => p.id !== id));
-      } catch (error) {
-        alert("Failed to delete plate");
-      }
+  const handleDeleteClick = (id: string) => {
+    setItemToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
+    try {
+      await PlateService.deletePlate(itemToDelete);
+      setPlates(prev => prev.filter(p => p.id !== itemToDelete));
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+    } catch (error) {
+      alert("Failed to delete plate");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -132,12 +147,12 @@ const Plates: React.FC = () => {
                     <div key={plate.id} className="bg-white p-6 rounded-xl shadow-sm border border-sage-100 flex items-center justify-between group relative overflow-hidden hover:shadow-md transition-shadow">
                     <div className="absolute top-0 left-0 w-1 h-full bg-sage-400"></div>
                     <div className="flex items-center gap-3">
-                        <Disc className="text-sage-300" size={24} />
+                        <Hash className="text-sage-300" size={24} />
                         <span className="text-xl font-mono font-bold text-sage-700">{plate.name}</span>
                     </div>
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-2">
                         <button onClick={() => handleEdit(plate)} className="text-sage-300 hover:text-sage-600"><Edit2 size={16} /></button>
-                        <button onClick={() => handleDelete(plate.id)} className="text-red-300 hover:text-red-500"><Trash2 size={16} /></button>
+                        <button onClick={() => handleDeleteClick(plate.id)} className="text-red-300 hover:text-red-500"><Trash2 size={16} /></button>
                     </div>
                     </div>
                 )) : (
@@ -189,6 +204,15 @@ const Plates: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         onSave={handleSave}
         initialData={editingPlate}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Plate"
+        message="Are you sure you want to delete this plate? This action cannot be undone."
+        isLoading={isDeleting}
       />
     </div>
   );

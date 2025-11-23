@@ -10,6 +10,7 @@ import * as TravelService from '../services/travelService';
 import GroupModal from '../components/modals/GroupModal';
 import TravelModal from '../components/modals/TravelModal';
 import TravelListModal from '../components/modals/TravelListModal';
+import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Groups: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -35,6 +36,11 @@ const Groups: React.FC = () => {
 
   // Travel List Modal State
   const [isTravelListOpen, setIsTravelListOpen] = useState(false);
+
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -75,15 +81,24 @@ const Groups: React.FC = () => {
     setIsGroupModalOpen(true);
   };
 
-  const handleDeleteGroup = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this group?')) {
-      try {
-        await GroupService.deleteGroup(id);
-        setGroups(prev => prev.filter(g => g.id !== id));
-      } catch (error) {
-        console.error("Delete failed", error);
-        alert("Failed to delete group");
-      }
+  const handleDeleteGroup = (id: string) => {
+    setGroupToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!groupToDelete) return;
+    setIsDeleting(true);
+    try {
+      await GroupService.deleteGroup(groupToDelete);
+      setGroups(prev => prev.filter(g => g.id !== groupToDelete));
+      setIsDeleteModalOpen(false);
+      setGroupToDelete(null);
+    } catch (error) {
+      console.error("Delete failed", error);
+      alert("Failed to delete group");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -95,7 +110,7 @@ const Groups: React.FC = () => {
       ));
     } else {
       const newGroup = await GroupService.addGroup(groupData);
-      setGroups(prev => [...prev, newGroup]);
+      setGroups(prev => [newGroup, ...prev]); // Prepend so it appears first
     }
   };
 
@@ -128,9 +143,9 @@ const Groups: React.FC = () => {
     }
   };
 
-  const filteredGroups = groups.filter(group => 
-    group.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredGroups = groups
+    .filter(group => group.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredGroups.length / entriesPerPage);
@@ -250,7 +265,7 @@ const Groups: React.FC = () => {
                         </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-2">
                             <button onClick={() => handleEditGroup(group)} className="p-2 text-sage-400 hover:text-sage-600 hover:bg-sage-100 rounded-lg transition-colors" title="Edit Group">
                                 <Edit2 size={16} />
                             </button>
@@ -339,6 +354,15 @@ const Groups: React.FC = () => {
         plates={plates}
         destinations={destinations}
         employees={employees}
+      />
+
+      <DeleteConfirmationModal 
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Group"
+        message="Are you sure you want to delete this group? All associated travels will still exist, but they will lose their group reference."
+        isLoading={isDeleting}
       />
     </div>
   );

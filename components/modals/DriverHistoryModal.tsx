@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
-import { X, Calendar, TrendingDown, Wallet, Truck } from 'lucide-react';
+
+import React, { useMemo, useState, useEffect } from 'react';
+import { X, Calendar, TrendingDown, Wallet, Truck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Driver, Employee, Travel } from '../../types';
 
 interface DriverHistoryModalProps {
@@ -17,21 +18,41 @@ const DriverHistoryModal: React.FC<DriverHistoryModalProps> = ({
   employee,
   travels
 }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
   // Filter travels for this driver
   const driverTravels = useMemo(() => {
     if (!driver) return [];
-    return travels.filter(t => t.driver === driver.employeeId);
+    // Sort by date descending (latest first)
+    return travels
+        .filter(t => t.driver === driver.employeeId)
+        .sort((a, b) => {
+             const dateA = new Date(a.date || 0).getTime();
+             const dateB = new Date(b.date || 0).getTime();
+             return dateB - dateA;
+        });
   }, [driver, travels]);
+
+  // Reset pagination when modal opens
+  useEffect(() => {
+      if (isOpen) setCurrentPage(1);
+  }, [isOpen, driver]);
 
   if (!isOpen || !driver) return null;
 
   const baseWage = driver.wage || 0;
 
-  // Calculate Aggregates
+  // Calculate Aggregates (Global)
   const totalTrips = driverTravels.length;
   const totalBaseWage = totalTrips * baseWage;
   const totalTips = driverTravels.reduce((sum, t) => sum + (t.driverTip || 0), 0);
   const totalNetPay = totalBaseWage - totalTips;
+
+  // Pagination Logic
+  const totalPages = Math.ceil(totalTrips / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentTravels = driverTravels.slice(startIndex, startIndex + itemsPerPage);
 
   const formatCurrency = (val: number) => '₱' + val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -72,13 +93,18 @@ const DriverHistoryModal: React.FC<DriverHistoryModalProps> = ({
 
         {/* List */}
         <div className="flex-1 overflow-y-auto p-6 bg-white">
-          <h3 className="text-sm font-bold text-sage-800 mb-4">Travel Breakdown</h3>
+          <h3 className="text-sm font-bold text-sage-800 mb-4 flex justify-between items-end">
+              <span>Travel Breakdown</span>
+              <span className="text-xs font-normal text-sage-400">Page {currentPage} of {totalPages || 1}</span>
+          </h3>
           
-          {driverTravels.length > 0 ? (
+          {currentTravels.length > 0 ? (
             <div className="space-y-3">
-               {driverTravels.map((travel, idx) => {
+               {currentTravels.map((travel, idx) => {
                   const tip = travel.driverTip || 0;
                   const netWage = baseWage - tip;
+                  // Calculate display index relative to total count (latest = highest number)
+                  const displayIndex = totalTrips - (startIndex + idx);
 
                   return (
                      <div key={travel.id} className="border border-sage-100 rounded-xl p-4 hover:shadow-md transition-shadow group">
@@ -86,11 +112,15 @@ const DriverHistoryModal: React.FC<DriverHistoryModalProps> = ({
                            {/* Left: Travel Info */}
                            <div className="flex items-start gap-3">
                               <div className="w-8 h-8 bg-sage-100 rounded-full flex items-center justify-center text-sage-600 font-bold text-xs mt-1">
-                                 {idx + 1}
+                                 {displayIndex}
                               </div>
                               <div>
                                  <div className="font-bold text-sage-800 text-lg">{travel.name}</div>
                                  <div className="flex gap-2 text-xs text-sage-500">
+                                    <div className="flex items-center gap-1">
+                                        <Calendar size={10} />
+                                        {travel.date || 'No Date'}
+                                    </div>
                                     {travel.ticket && <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{travel.ticket}</span>}
                                     <span>{travel.tons} tons</span>
                                  </div>
@@ -132,6 +162,31 @@ const DriverHistoryModal: React.FC<DriverHistoryModalProps> = ({
              </div>
           )}
         </div>
+
+        {/* Pagination Footer */}
+        {totalPages > 1 && (
+            <div className="p-4 border-t border-sage-100 flex items-center justify-between bg-sage-50 shrink-0">
+                <div className="text-xs text-sage-500">
+                    Showing {startIndex + 1} - {Math.min(startIndex + itemsPerPage, totalTrips)} of {totalTrips}
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 border border-sage-200 rounded hover:bg-white text-xs disabled:opacity-50 disabled:hover:bg-transparent transition-colors flex items-center gap-1"
+                    >
+                        <ChevronLeft size={14} /> Previous
+                    </button>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 border border-sage-200 rounded hover:bg-white text-xs disabled:opacity-50 disabled:hover:bg-transparent transition-colors flex items-center gap-1"
+                    >
+                        Next <ChevronRight size={14} />
+                    </button>
+                </div>
+            </div>
+        )}
       </div>
     </div>
   );

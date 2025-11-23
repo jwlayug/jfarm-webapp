@@ -3,6 +3,7 @@ import { Map, Plus, Trash2, Edit2, Loader2 } from 'lucide-react';
 import { Land } from '../types';
 import * as LandService from '../services/landService';
 import LandModal from '../components/modals/LandModal';
+import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Lands: React.FC = () => {
   const [lands, setLands] = useState<Land[]>([]);
@@ -14,6 +15,11 @@ const Lands: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -41,14 +47,23 @@ const Lands: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure? This cannot be undone.')) {
-      try {
-        await LandService.deleteLand(id);
-        setLands(prev => prev.filter(l => l.id !== id));
-      } catch (error) {
-        alert("Failed to delete land");
-      }
+  const handleDeleteClick = (id: string) => {
+    setItemToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
+    try {
+      await LandService.deleteLand(itemToDelete);
+      setLands(prev => prev.filter(l => l.id !== itemToDelete));
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+    } catch (error) {
+      alert("Failed to delete land");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -140,7 +155,7 @@ const Lands: React.FC = () => {
                             <p className="text-xs text-sage-400 font-mono">{land.id}</p>
                         </div>
                     </div>
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-2">
                         <button 
                         onClick={() => handleEdit(land)}
                         className="p-2 text-sage-400 hover:text-sage-600 hover:bg-sage-200 rounded-lg"
@@ -148,7 +163,7 @@ const Lands: React.FC = () => {
                         <Edit2 size={16} />
                         </button>
                         <button 
-                        onClick={() => handleDelete(land.id)}
+                        onClick={() => handleDeleteClick(land.id)}
                         className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-lg"
                         >
                         <Trash2 size={16} />
@@ -204,6 +219,15 @@ const Lands: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         onSave={handleSave}
         initialData={editingLand}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Land"
+        message="Are you sure you want to delete this land? This action cannot be undone."
+        isLoading={isDeleting}
       />
     </div>
   );

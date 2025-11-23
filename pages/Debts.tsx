@@ -4,6 +4,7 @@ import { Employee, Debt } from '../types';
 import * as EmployeeService from '../services/employeeService';
 import * as DebtService from '../services/debtService';
 import DebtModal from '../components/modals/DebtModal';
+import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Debts: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -16,6 +17,11 @@ const Debts: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -61,14 +67,23 @@ const Debts: React.FC = () => {
     }
   };
 
-  const handleDeleteDebt = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this record?')) {
-      try {
-        await DebtService.deleteDebt(id);
-        setDebts(prev => prev.filter(d => d.id !== id));
-      } catch (error) {
-        alert("Failed to delete debt");
-      }
+  const handleDeleteDebtClick = async (id: string) => {
+    setItemToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
+    try {
+      await DebtService.deleteDebt(itemToDelete);
+      setDebts(prev => prev.filter(d => d.id !== itemToDelete));
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+    } catch (error) {
+      alert("Failed to delete debt");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -262,7 +277,16 @@ const Debts: React.FC = () => {
         debts={selectedEmployeeDebts}
         onAdd={handleAddDebt}
         onTogglePaid={handleTogglePaid}
-        onDelete={handleDeleteDebt}
+        onDelete={handleDeleteDebtClick}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Debt Record"
+        message="Are you sure you want to delete this debt record? This action cannot be undone."
+        isLoading={isDeleting}
       />
     </div>
   );

@@ -5,6 +5,7 @@ import * as LoanService from '../services/loanService';
 import LoanModal from '../components/modals/LoanModal';
 import LoanDetailsModal from '../components/modals/LoanDetailsModal';
 import LoanRenewalModal from '../components/modals/LoanRenewalModal';
+import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Loans: React.FC = () => {
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -20,15 +21,22 @@ const Loans: React.FC = () => {
   const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
   const [renewingLoan, setRenewingLoan] = useState<Loan | null>(null);
 
-  const fetchData = async () => {
-    setIsLoading(true);
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [loanToDelete, setLoanToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const fetchData = async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     try {
       const data = await LoanService.getLoans();
       setLoans(data);
+      return data;
     } catch (error) {
       console.error("Failed to load loans", error);
+      return [];
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 
@@ -54,20 +62,33 @@ const Loans: React.FC = () => {
     setIsDetailsModalOpen(true);
   };
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.preventDefault(); // Prevent any form submission or default link behavior
-    e.stopPropagation(); // Stop event from bubbling to the card
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLoanToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!loanToDelete) return;
     
-    if (window.confirm('Are you sure you want to delete this loan? All related payments and renewal records will be deleted.')) {
-      try {
-        // Optimistically update UI
-        setLoans(prev => prev.filter(l => l.id !== id));
-        await LoanService.deleteLoan(id);
-      } catch (error) {
-        console.error(error);
-        alert("Failed to delete loan. Please refresh and try again.");
-        fetchData(); // Revert on error
-      }
+    setIsDeleting(true);
+    try {
+      console.log("UI: Processing delete for loan ID:", loanToDelete);
+      
+      // Optimistically update UI
+      setLoans(prev => prev.filter(l => l.id !== loanToDelete));
+
+      await LoanService.deleteLoan(loanToDelete);
+      console.log("UI: Loan deleted successfully.");
+      setIsDeleteModalOpen(false);
+      setLoanToDelete(null);
+    } catch (error: any) {
+      console.error("UI: Failed to delete loan:", error);
+      alert(`Failed to delete loan. Error: ${error.message}`);
+      fetchData(); // Revert on error
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -137,41 +158,47 @@ const Loans: React.FC = () => {
             {loans.map((loan) => (
                <div 
                   key={loan.id} 
-                  className="bg-white rounded-xl shadow-sm border border-sage-100 p-6 hover:shadow-md transition-shadow cursor-pointer group relative"
-                  onClick={() => handleView(loan)}
+                  className="bg-white rounded-xl shadow-sm border border-sage-100 hover:shadow-md transition-shadow group relative flex flex-col"
                >
-                   <div className="flex justify-between items-start mb-4">
-                      <div>
-                         <h3 className="text-lg font-bold text-sage-800 flex items-center gap-2">
-                             {loan.description}
-                             <span className={`text-[10px] px-2 py-0.5 rounded-full border ${loan.paid ? 'bg-green-50 text-green-600 border-green-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
-                                 {loan.paid ? 'Paid' : 'Active'}
-                             </span>
-                         </h3>
-                         <p className="text-xs text-sage-400 mt-1">Due: {loan.dueDate}</p>
-                      </div>
+                   {/* CLICKABLE CARD BODY */}
+                   <div 
+                      className="p-6 cursor-pointer flex-1"
+                      onClick={() => handleView(loan)}
+                   >
+                       <div className="flex justify-between items-start mb-4">
+                          <div>
+                             <h3 className="text-lg font-bold text-sage-800 flex items-center gap-2">
+                                 {loan.description}
+                                 <span className={`text-[10px] px-2 py-0.5 rounded-full border ${loan.paid ? 'bg-green-50 text-green-600 border-green-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                                     {loan.paid ? 'Paid' : 'Active'}
+                                 </span>
+                             </h3>
+                             <p className="text-xs text-sage-400 mt-1">Due: {loan.dueDate}</p>
+                          </div>
+                       </div>
+
+                       <div className="space-y-2 text-sm">
+                           <div className="flex justify-between">
+                               <span className="text-gray-500">Total:</span>
+                               <span className="font-bold text-gray-900">₱{loan.totalAmount.toLocaleString()}</span>
+                           </div>
+                           <div className="flex justify-between">
+                               <span className="text-gray-500">Paid (Current):</span>
+                               <span className="font-medium text-green-600">₱{loan.totalPaidCurrent.toLocaleString()}</span>
+                           </div>
+                           <div className="flex justify-between">
+                               <span className="text-gray-500">Paid (Lifetime):</span>
+                               <span className="font-medium text-blue-600">₱{loan.totalPaidLifetime.toLocaleString()}</span>
+                           </div>
+                           <div className="flex justify-between pt-2 border-t border-dashed border-gray-200">
+                               <span className="font-medium text-gray-600">Remaining:</span>
+                               <span className="font-bold text-red-600">₱{loan.remainingBalance.toLocaleString()}</span>
+                           </div>
+                       </div>
                    </div>
 
-                   <div className="space-y-2 text-sm mb-6">
-                       <div className="flex justify-between">
-                           <span className="text-gray-500">Total:</span>
-                           <span className="font-bold text-gray-900">₱{loan.totalAmount.toLocaleString()}</span>
-                       </div>
-                       <div className="flex justify-between">
-                           <span className="text-gray-500">Paid (Current):</span>
-                           <span className="font-medium text-green-600">₱{loan.totalPaidCurrent.toLocaleString()}</span>
-                       </div>
-                       <div className="flex justify-between">
-                           <span className="text-gray-500">Paid (Lifetime):</span>
-                           <span className="font-medium text-blue-600">₱{loan.totalPaidLifetime.toLocaleString()}</span>
-                       </div>
-                       <div className="flex justify-between pt-2 border-t border-dashed border-gray-200">
-                           <span className="font-medium text-gray-600">Remaining:</span>
-                           <span className="font-bold text-red-600">₱{loan.remainingBalance.toLocaleString()}</span>
-                       </div>
-                   </div>
-
-                   <div className="flex gap-2 items-center">
+                   {/* ACTION FOOTER (Separated DOM structure for reliability) */}
+                   <div className="px-6 pb-6 pt-0 flex gap-2 items-center">
                        <button 
                           type="button"
                           onClick={(e) => { e.stopPropagation(); handleView(loan); }}
@@ -180,12 +207,11 @@ const Loans: React.FC = () => {
                            <Eye size={14} /> View
                        </button>
                        
-                       {/* Safe Zone for Actions: Added z-index and relative positioning to ensure clickability */}
-                       <div className="flex gap-1 relative z-10" onClick={(e) => e.stopPropagation()}>
+                       <div className="flex gap-1 relative z-20">
                            <button 
                               type="button"
                               onClick={(e) => handleEdit(e, loan)} 
-                              className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors cursor-pointer" 
+                              className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors cursor-pointer border border-transparent hover:border-gray-200" 
                               title="Edit"
                            >
                                <Edit2 size={16} />
@@ -193,15 +219,15 @@ const Loans: React.FC = () => {
                            <button 
                               type="button"
                               onClick={(e) => handleOpenRenewal(e, loan)} 
-                              className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors cursor-pointer" 
+                              className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 transition-colors cursor-pointer border border-transparent hover:border-gray-200" 
                               title="Renew"
                            >
                                <RefreshCw size={16} />
                            </button>
                            <button 
                               type="button"
-                              onClick={(e) => handleDelete(e, loan.id)} 
-                              className="p-2 bg-red-50 text-red-400 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors cursor-pointer" 
+                              onClick={(e) => handleDeleteClick(e, loan.id)} 
+                              className="p-2 bg-red-50 text-red-400 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors cursor-pointer border border-transparent hover:border-red-200" 
                               title="Delete"
                            >
                                <Trash2 size={16} />
@@ -231,12 +257,16 @@ const Loans: React.FC = () => {
          isOpen={isDetailsModalOpen}
          onClose={() => setIsDetailsModalOpen(false)}
          loan={viewingLoan}
-         onUpdate={() => {
-             fetchData();
-             // Refresh the viewing loan data
+         onUpdate={async () => {
+             // Fetch fresh data silently (no global loading spinner)
+             const updatedLoans = await fetchData(false);
+             
+             // Update the viewingLoan state with the fresh data from the list
              if(viewingLoan) {
-                const updated = loans.find(l => l.id === viewingLoan.id);
-                if(updated) setViewingLoan(updated);
+                const updated = updatedLoans.find(l => l.id === viewingLoan.id);
+                if(updated) {
+                   setViewingLoan(updated);
+                }
              }
          }}
       />
@@ -246,6 +276,15 @@ const Loans: React.FC = () => {
         onClose={() => setIsRenewalModalOpen(false)}
         loan={renewingLoan}
         onRenew={handleRenewSubmit}
+      />
+
+      <DeleteConfirmationModal 
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Loan"
+        message="Are you sure you want to delete this loan? This will also delete all related payment and usage records. This action cannot be undone."
+        isLoading={isDeleting}
       />
     </div>
   );

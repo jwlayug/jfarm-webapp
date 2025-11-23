@@ -159,24 +159,29 @@ export const addLoanUsage = async (loanId: string, usage: Omit<LoanUsage, 'id' |
 
 // --- DELETE ---
 export const deleteLoan = async (id: string): Promise<void> => {
+  console.log("Service: deleteLoan called for ID:", id);
   try {
     // 1. Delete all related expenses (Payments & Renewals)
-    // We wrap this in a try/catch so that if it fails (e.g. missing index), the main loan is still deleted.
     try {
+      console.log("Service: Querying related expenses for deletion...");
       const expensesQuery = query(collection(db, EXPENSES_COLLECTION), where('relatedLoanId', '==', id));
       const expensesSnap = await getDocs(expensesQuery);
+      
       const deletePromises = expensesSnap.docs.map(docSnap => deleteDoc(docSnap.ref));
       if (deletePromises.length > 0) {
         await Promise.all(deletePromises);
+        console.log("Service: Related expenses deleted.");
       }
     } catch (expError) {
-      console.warn("Failed to clean up related expenses (orphaned records may remain):", expError);
+      console.warn("Service Warning: Failed to clean up related expenses. Check Firestore Indexes.", expError);
     }
 
     // 2. Delete the loan document itself
+    console.log("Service: Deleting loan document...");
     await deleteDoc(doc(db, COLLECTION_NAME, id));
+    console.log("Service: Loan document deleted.");
   } catch (error) {
-    console.error("Error deleting loan: ", error);
+    console.error("Service Error: Error deleting loan: ", error);
     throw error;
   }
 };
@@ -190,11 +195,12 @@ export const renewLoan = async (id: string, newDueDate: string, renewalPaymentAm
      if(loanSnap.exists()) {
          const loanData = loanSnap.data() as Loan;
          const now = new Date().toISOString();
+         let expenseId: string | undefined;
          
          // Record renewal payment as an expense if amount > 0
          if (renewalPaymentAmount > 0) {
             try {
-              await addDoc(collection(db, EXPENSES_COLLECTION), {
+              const expRef = await addDoc(collection(db, EXPENSES_COLLECTION), {
                 name: 'Loan Renewal Payment',
                 description: `Renewal payment for loan: ${loanData.description}`,
                 amount: renewalPaymentAmount,
@@ -203,26 +209,51 @@ export const renewLoan = async (id: string, newDueDate: string, renewalPaymentAm
                 relatedLoanId: id, // Link for cascade delete
                 created_at: now
               });
+              expenseId = expRef.id;
             } catch (e) {
               console.error("Failed to create renewal expense record", e);
             }
          }
 
-         // Reset Logic:
-         // We reset the remaining balance back to the TOTAL loan amount (e.g. 200k), 
-         // effectively restarting the loan.
-         // Any renewal payment is deducted from this fresh start.
-         const baseAmount = loanData.totalAmount;
-         const effectiveNewBalance = Math.max(0, baseAmount - renewalPaymentAmount);
+         // 1. Usage (Reduces Available)
+         const newUsages: LoanUsage[] = [];
+         if (renewalPaymentAmount > 0) {
+             newUsages.push({
+                 id: Date.now().toString(),
+                 loanId: id,
+                 description: 'Renewal Deduction',
+                 amount: renewalPaymentAmount,
+                 usageDate: new Date().toISOString().split('T')[0],
+                 createdAt: now,
+                 updatedAt: now,
+                 otherExpenseId: expenseId
+             });
+         }
+
+         // 2. Payment (Reduces Remaining Balance)
+         const newPayments: LoanPayment[] = [];
+         if (renewalPaymentAmount > 0) {
+             newPayments.push({
+                 id: (Date.now() + 1).toString(), // distinct ID from usage
+                 loanId: id,
+                 amount: renewalPaymentAmount,
+                 paymentDate: new Date().toISOString().split('T')[0],
+                 otherExpenseId: expenseId,
+                 createdAt: now,
+                 updatedAt: now
+             });
+         }
+
+         // Reset remaining balance but deduct the renewal payment immediately
+         const newBalance = loanData.totalAmount - renewalPaymentAmount;
 
          await updateDoc(loanRef, {
-             // totalAmount remains the same
-             remainingBalance: effectiveNewBalance,
-             totalPaidCurrent: 0, // Reset current cycle paid amount
-             // totalPaidLifetime is NOT reset, as it tracks historical payments
+             remainingBalance: Math.max(0, newBalance),
+             totalPaidCurrent: renewalPaymentAmount, 
              dueDate: newDueDate,
-             paid: effectiveNewBalance <= 0,
-             payments: [], // Clear current payments list for the new cycle
+             paid: false,
+             payments: newPayments, // Initialize with the renewal payment
+             usages: newUsages, // Initialize with the renewal deduction
              updatedAt: now
          });
      }

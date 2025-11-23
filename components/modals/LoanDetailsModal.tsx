@@ -75,6 +75,7 @@ const LoanDetailsModal: React.FC<LoanDetailsModalProps> = ({ isOpen, onClose, lo
   const remainingUsage = loan.totalAmount - totalUsage;
 
   return (
+    <>
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200 relative">
         
@@ -222,103 +223,117 @@ const LoanDetailsModal: React.FC<LoanDetailsModalProps> = ({ isOpen, onClose, lo
              </div>
            )}
 
-           {/* COMPACT OVERLAYS */}
-           
-           {/* Add Payment Dialog */}
-           {isAddingPayment && (
-               <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-                   <div className="bg-white rounded-xl shadow-xl w-72 border border-sage-200 overflow-hidden animate-in zoom-in-95 fade-in duration-200">
-                       <div className="bg-sage-50 px-4 py-3 border-b border-sage-100 flex justify-between items-center">
-                           <h4 className="font-bold text-sm text-sage-800">New Payment</h4>
-                           <button onClick={() => setIsAddingPayment(false)} className="text-sage-400 hover:text-sage-600"><X size={16}/></button>
-                       </div>
-                       <form onSubmit={handleAddPayment} className="p-4 space-y-3">
-                           <div>
-                               <label className="block text-[10px] font-bold text-sage-500 uppercase mb-1">Amount</label>
-                               <input 
-                                 autoFocus
-                                 type="number" 
-                                 required 
-                                 value={paymentAmount} 
-                                 onChange={e => setPaymentAmount(e.target.value)} 
-                                 className="w-full px-3 py-2 border border-sage-200 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-                                 placeholder="0.00"
-                               />
-                           </div>
-                           <div>
-                               <label className="block text-[10px] font-bold text-sage-500 uppercase mb-1">Date</label>
-                               <input 
-                                 type="date" 
-                                 required 
-                                 value={paymentDate} 
-                                 onChange={e => setPaymentDate(e.target.value)} 
-                                 className="w-full px-3 py-2 border border-sage-200 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                               />
-                           </div>
-                           <div className="pt-2">
-                               <button disabled={isLoading} type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors">
-                                   {isLoading ? <Loader2 className="animate-spin mx-auto" size={16}/> : 'Confirm Payment'}
-                               </button>
-                           </div>
-                       </form>
-                   </div>
-               </div>
-           )}
-
-           {/* Add Usage Dialog */}
-           {isAddingUsage && (
-               <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-                   <div className="bg-white rounded-xl shadow-xl w-72 border border-sage-200 overflow-hidden animate-in zoom-in-95 fade-in duration-200">
-                       <div className="bg-sage-50 px-4 py-3 border-b border-sage-100 flex justify-between items-center">
-                           <h4 className="font-bold text-sm text-sage-800">New Usage</h4>
-                           <button onClick={() => setIsAddingUsage(false)} className="text-sage-400 hover:text-sage-600"><X size={16}/></button>
-                       </div>
-                       <form onSubmit={handleAddUsage} className="p-4 space-y-3">
-                           <div>
-                               <label className="block text-[10px] font-bold text-sage-500 uppercase mb-1">Description</label>
-                               <input 
-                                 type="text"
-                                 required 
-                                 autoFocus
-                                 value={usageDesc} 
-                                 onChange={e => setUsageDesc(e.target.value)} 
-                                 className="w-full px-3 py-2 border border-sage-200 rounded text-sm focus:ring-2 focus:ring-sage-500 outline-none"
-                                 placeholder="e.g. Fertilizer"
-                               />
-                           </div>
-                           <div>
-                               <label className="block text-[10px] font-bold text-sage-500 uppercase mb-1">Amount</label>
-                               <input 
-                                 type="number" 
-                                 required 
-                                 value={usageAmount} 
-                                 onChange={e => setUsageAmount(e.target.value)} 
-                                 className="w-full px-3 py-2 border border-sage-200 rounded text-sm focus:ring-2 focus:ring-sage-500 outline-none" 
-                                 placeholder="0.00"
-                               />
-                           </div>
-                           <div>
-                               <label className="block text-[10px] font-bold text-sage-500 uppercase mb-1">Date</label>
-                               <input 
-                                 type="date" 
-                                 required 
-                                 value={usageDate} 
-                                 onChange={e => setUsageDate(e.target.value)} 
-                                 className="w-full px-3 py-2 border border-sage-200 rounded text-sm focus:ring-2 focus:ring-sage-500 outline-none"
-                               />
-                           </div>
-                           <div className="pt-2">
-                               <button disabled={isLoading} type="submit" className="w-full bg-sage-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-sage-700 transition-colors">
-                                   {isLoading ? <Loader2 className="animate-spin mx-auto" size={16}/> : 'Record Usage'}
-                               </button>
-                           </div>
-                       </form>
-                   </div>
-               </div>
-           )}
         </div>
       </div>
     </div>
+
+    {/* SUB-MODALS: Fixed Positioning on top of everything with high Z-index */}
+    
+    {/* Add Payment Dialog */}
+    {isAddingPayment && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-xs border border-sage-200 overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-blue-50 px-4 py-3 border-b border-blue-100 flex justify-between items-center">
+                    <div className="flex items-center gap-2 text-blue-800">
+                        <DollarSign size={16}/>
+                        <h4 className="font-bold text-sm">New Payment</h4>
+                    </div>
+                    <button onClick={() => setIsAddingPayment(false)} className="text-blue-400 hover:text-blue-600 bg-white rounded-full p-1 shadow-sm"><X size={14}/></button>
+                </div>
+                <form onSubmit={handleAddPayment} className="p-5 space-y-4">
+                    <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Amount</label>
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">₱</span>
+                            <input 
+                                autoFocus
+                                type="number" 
+                                required 
+                                value={paymentAmount} 
+                                onChange={e => setPaymentAmount(e.target.value)} 
+                                className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
+                                placeholder="0.00"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Date</label>
+                        <input 
+                            type="date" 
+                            required 
+                            value={paymentDate} 
+                            onChange={e => setPaymentDate(e.target.value)} 
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                        />
+                    </div>
+                    <div className="pt-2">
+                        <button disabled={isLoading} type="submit" className="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors shadow-md shadow-blue-200">
+                            {isLoading ? <Loader2 className="animate-spin mx-auto" size={16}/> : 'Confirm Payment'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    )}
+
+    {/* Add Usage Dialog */}
+    {isAddingUsage && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-xs border border-sage-200 overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-sage-50 px-4 py-3 border-b border-sage-100 flex justify-between items-center">
+                    <div className="flex items-center gap-2 text-sage-800">
+                         <AlignLeft size={16}/>
+                         <h4 className="font-bold text-sm">New Usage</h4>
+                    </div>
+                    <button onClick={() => setIsAddingUsage(false)} className="text-sage-400 hover:text-sage-600 bg-white rounded-full p-1 shadow-sm"><X size={14}/></button>
+                </div>
+                <form onSubmit={handleAddUsage} className="p-5 space-y-4">
+                    <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Description</label>
+                        <input 
+                            type="text"
+                            required 
+                            autoFocus
+                            value={usageDesc} 
+                            onChange={e => setUsageDesc(e.target.value)} 
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-sage-500 focus:border-sage-500 outline-none transition-all"
+                            placeholder="e.g. Fertilizer"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Amount</label>
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">₱</span>
+                            <input 
+                                type="number" 
+                                required 
+                                value={usageAmount} 
+                                onChange={e => setUsageAmount(e.target.value)} 
+                                className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-sage-500 focus:border-sage-500 outline-none transition-all" 
+                                placeholder="0.00"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Date</label>
+                        <input 
+                            type="date" 
+                            required 
+                            value={usageDate} 
+                            onChange={e => setUsageDate(e.target.value)} 
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-sage-500 focus:border-sage-500 outline-none transition-all"
+                        />
+                    </div>
+                    <div className="pt-2">
+                        <button disabled={isLoading} type="submit" className="w-full bg-sage-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-sage-700 transition-colors shadow-md shadow-sage-200">
+                            {isLoading ? <Loader2 className="animate-spin mx-auto" size={16}/> : 'Record Usage'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    )}
+    </>
   );
 };
 

@@ -3,6 +3,7 @@ import { Navigation, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { Destination } from '../types';
 import * as DestinationService from '../services/destinationService';
 import DestinationModal from '../components/modals/DestinationModal';
+import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Destinations: React.FC = () => {
   const [destinations, setDestinations] = useState<Destination[]>([]);
@@ -14,6 +15,11 @@ const Destinations: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -41,14 +47,23 @@ const Destinations: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure? This cannot be undone.')) {
-      try {
-        await DestinationService.deleteDestination(id);
-        setDestinations(prev => prev.filter(d => d.id !== id));
-      } catch (error) {
-        alert("Failed to delete destination");
-      }
+  const handleDeleteClick = (id: string) => {
+    setItemToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
+    try {
+      await DestinationService.deleteDestination(itemToDelete);
+      setDestinations(prev => prev.filter(d => d.id !== itemToDelete));
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+    } catch (error) {
+      alert("Failed to delete destination");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -144,9 +159,9 @@ const Destinations: React.FC = () => {
                         </div>
                     </div>
                     
-                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-4 right-4 flex gap-2">
                         <button onClick={() => handleEdit(dest)} className="text-sage-400 hover:text-sage-600 p-1 bg-white rounded shadow-sm"><Edit2 size={14} /></button>
-                        <button onClick={() => handleDelete(dest.id)} className="text-red-300 hover:text-red-500 p-1 bg-white rounded shadow-sm"><Trash2 size={14} /></button>
+                        <button onClick={() => handleDeleteClick(dest.id)} className="text-red-300 hover:text-red-500 p-1 bg-white rounded shadow-sm"><Trash2 size={14} /></button>
                     </div>
                     </div>
                 )) : (
@@ -198,6 +213,15 @@ const Destinations: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         onSave={handleSave}
         initialData={editingDest}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Destination"
+        message="Are you sure you want to delete this destination? This action cannot be undone."
+        isLoading={isDeleting}
       />
     </div>
   );

@@ -27,8 +27,8 @@ export const addGroup = async (group: Omit<Group, 'id'>): Promise<Group> => {
 // --- READ ---
 export const getGroups = async (): Promise<Group[]> => {
   try {
-    // Order by name for better organization
-    const q = query(collection(db, COLLECTION_NAME), orderBy('name'));
+    // Order by created_at desc (latest first)
+    const q = query(collection(db, COLLECTION_NAME), orderBy('created_at', 'desc'));
     const querySnapshot = await getDocs(q);
     
     const groups: Group[] = [];

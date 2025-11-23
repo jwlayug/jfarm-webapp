@@ -1,9 +1,11 @@
 import React from 'react';
 import {
   LayoutDashboard, Users, Layers, Car, CreditCard, Map,
-  Disc, Navigation, Receipt, Landmark, FileText, Settings,
-  Calculator, X, Sprout
+  Hash, Navigation, Receipt, Landmark, FileText, Settings,
+  Calculator, X, Sprout, LogOut
 } from 'lucide-react';
+import { auth } from '../lib/firebase';
+import { signOut } from 'firebase/auth';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -39,14 +41,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentPage, onNav
     { label: 'Drivers', icon: Car },
     { label: 'Debts', icon: CreditCard },
     { label: 'Lands', icon: Map },
-    { label: 'Plates', icon: Disc },
+    { label: 'Plates', icon: Hash },
     { label: 'Destinations', icon: Navigation },
     { label: 'Summaries', icon: FileText },
     { label: 'Expenses', icon: Receipt },
     { label: 'Loans', icon: Landmark },
-  
     { label: 'Settings', icon: Settings },
   ];
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error signing out", error);
+    }
+  };
 
   return (
     <>
@@ -99,7 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentPage, onNav
           
           <div className="mx-6 my-4 border-t border-sage-500 shrink-0"></div>
           
-          <div className="shrink-0 pb-safe">
+          <div className="shrink-0 pb-safe space-y-1">
             <SidebarItem 
               icon={Calculator} 
               label="Calculator" 
@@ -110,6 +119,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, currentPage, onNav
                   setIsOpen(false);
                 }
               }}
+            />
+            <SidebarItem 
+              icon={LogOut} 
+              label="Logout" 
+              active={false}
+              onClick={handleLogout}
             />
           </div>
         </div>

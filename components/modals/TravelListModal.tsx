@@ -3,6 +3,7 @@ import { X, Loader2, Edit2, Trash2, Truck, BarChart3, FileText } from 'lucide-re
 import { Travel, Group, Land, Plate, Destination, Employee } from '../../types';
 import * as TravelService from '../../services/travelService';
 import TravelSummaryModal from './TravelSummaryModal';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 interface TravelListModalProps {
   isOpen: boolean;
@@ -28,6 +29,11 @@ const TravelListModal: React.FC<TravelListModalProps> = ({
   const [travels, setTravels] = useState<Travel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  
+  // Delete State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchTravels = async () => {
     if (!group) return;
@@ -48,14 +54,23 @@ const TravelListModal: React.FC<TravelListModalProps> = ({
     }
   }, [isOpen, group]);
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this travel record?')) {
-      try {
-        await TravelService.deleteTravel(id);
-        setTravels(prev => prev.filter(t => t.id !== id));
-      } catch (error) {
-        alert("Failed to delete travel");
-      }
+  const handleDeleteClick = (id: string) => {
+    setItemToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
+    try {
+      await TravelService.deleteTravel(itemToDelete);
+      setTravels(prev => prev.filter(t => t.id !== itemToDelete));
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+    } catch (error) {
+      alert("Failed to delete travel");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -137,7 +152,7 @@ const TravelListModal: React.FC<TravelListModalProps> = ({
                                       <Edit2 size={14} /> Edit
                                   </button>
                                   <button 
-                                      onClick={() => handleDelete(travel.id)}
+                                      onClick={() => handleDeleteClick(travel.id)}
                                       className="flex items-center gap-1 px-3 py-2 bg-white border border-red-200 text-red-500 rounded-lg hover:bg-red-50 text-sm font-medium"
                                   >
                                       <Trash2 size={14} /> Delete
@@ -163,6 +178,15 @@ const TravelListModal: React.FC<TravelListModalProps> = ({
         travels={travels}
         group={group}
         employees={employees}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Travel Record"
+        message="Are you sure you want to delete this travel record? This cannot be undone."
+        isLoading={isDeleting}
       />
     </>
   );

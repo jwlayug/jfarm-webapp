@@ -1,40 +1,27 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useState } from 'react';
 import { Plus, MoreHorizontal, User, Trash2, Edit2, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import { useFarmData } from '../context/FarmContext'; // Context Hook
 import { Employee } from '../types';
-import * as EmployeeService from '../services/employeeService';
 import EmployeeModal from '../components/modals/EmployeeModal';
+import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 
 const Employees: React.FC = () => {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Access Global State & Services
+  const { employees, isLoading, services } = useFarmData();
+  
+  // Local UI State
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
-  
-  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-
-  // Fetch Data
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const data = await EmployeeService.getEmployees();
-      setEmployees(data);
-    } catch (error) {
-      console.error("Failed to load employees", error);
-      alert("Could not connect to the database. Please check your configuration.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   // Handlers
   const handleAdd = () => {
@@ -48,31 +35,40 @@ const Employees: React.FC = () => {
     setActiveMenuId(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this employee? This action cannot be undone.')) {
-      try {
-        await EmployeeService.deleteEmployee(id);
-        setEmployees(prev => prev.filter(e => e.id !== id));
-      } catch (error) {
-        console.error("Delete failed", error);
-        alert("Failed to delete employee");
-      }
-    }
+  const handleDeleteClick = (id: string) => {
+    setItemToDelete(id);
+    setIsDeleteModalOpen(true);
     setActiveMenuId(null);
   };
 
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    setIsActionLoading(true);
+    try {
+      await services.employees.delete(itemToDelete);
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+    } catch (error) {
+      console.error("Delete failed", error);
+      alert("Failed to delete employee");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const handleSave = async (employeeData: Omit<Employee, 'id'>) => {
-    if (editingEmployee) {
-      // Update
-      await EmployeeService.updateEmployee(editingEmployee.id, employeeData);
-      // Optimistic Update
-      setEmployees(prev => prev.map(emp => 
-        emp.id === editingEmployee.id ? { ...emp, ...employeeData } : emp
-      ));
-    } else {
-      // Create
-      const newEmp = await EmployeeService.addEmployee(employeeData);
-      setEmployees(prev => [...prev, newEmp]);
+    setIsActionLoading(true);
+    try {
+      if (editingEmployee) {
+        await services.employees.update(editingEmployee.id, employeeData);
+      } else {
+        await services.employees.add(employeeData);
+      }
+    } catch (error) {
+        console.error("Save failed", error);
+        alert("Failed to save employee");
+    } finally {
+        setIsActionLoading(false);
     }
   };
 
@@ -204,7 +200,7 @@ const Employees: React.FC = () => {
                                 <Edit2 size={14} /> Edit Details
                             </button>
                             <button 
-                                onClick={(e) => { e.stopPropagation(); handleDelete(emp.id); }}
+                                onClick={(e) => { e.stopPropagation(); handleDeleteClick(emp.id); }}
                                 className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-sage-50"
                             >
                                 <Trash2 size={14} /> Delete Employee
@@ -267,6 +263,15 @@ const Employees: React.FC = () => {
         onClose={() => setIsModalOpen(false)} 
         onSave={handleSave}
         initialData={editingEmployee}
+      />
+
+      <DeleteConfirmationModal 
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Employee"
+        message="Are you sure you want to delete this employee? This action cannot be undone."
+        isLoading={isActionLoading}
       />
     </div>
   );
