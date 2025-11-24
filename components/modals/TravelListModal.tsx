@@ -28,7 +28,7 @@ const TravelListModal: React.FC<TravelListModalProps> = ({
   employees
 }) => {
   // Use context data ensures we see data from the ACTIVE FARM
-  const { travels: allTravels, services } = useFarmData();
+  const { travels: allTravels, services, drivers } = useFarmData();
   
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   
@@ -173,6 +173,7 @@ const TravelListModal: React.FC<TravelListModalProps> = ({
         travels={travels}
         group={group}
         employees={employees}
+        drivers={drivers}
       />
 
       <DeleteConfirmationModal

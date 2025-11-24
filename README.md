@@ -1,57 +1,102 @@
 # JFarm - Sugarcane Farm Management System
 
+![JFarm Dashboard](https://via.placeholder.com/1200x600?text=JFarm+Dashboard+Preview)
+
 ## 🌾 Overview
-JFarm is a comprehensive, React-based Progressive Web Application (PWA) designed to digitize the operations of sugarcane farming. It manages the entire lifecycle of logistics from land source to mill destination, tracks workforce attendance and wages, handles financial debts/loans, and provides real-time analytics.
+
+**JFarm** is a specialized, high-performance web application designed to digitize and streamline the complex operations of sugarcane farming. Built with modern web technologies, it serves as a central command center for managing logistics, workforce finances, crop production, and operational costs.
+
+It features a **Multi-Farm Architecture**, allowing users to manage distinct agricultural entities (tenants/farms) within a single interface, with complete data isolation.
 
 ## 🛠 Tech Stack
-*   **Frontend:** React 19, TypeScript, Vite
-*   **Styling:** Tailwind CSS
-*   **Database & Auth:** Firebase (Firestore, Auth)
-*   **AI:** Google Gemini / Firebase Vertex AI (for natural language data analysis)
+
+*   **Core:** React 19, TypeScript, Vite
+*   **Styling:** Tailwind CSS (Sage Green Theme)
+*   **State Management:** React Context API
+*   **Database & Auth:** Firebase (Firestore & Authentication)
+*   **Desktop Wrapper:** Electron
+*   **AI Intelligence:** Google Gemini API (Flash 2.5) / Firebase Vertex AI
 *   **Visualization:** Recharts
-*   **Utilities:** date-fns, html2canvas (for receipt generation), Lucide React (icons)
+*   **Reporting:** html2canvas (Image generation), date-fns
 
 ## 🚀 Key Features
 
-### 1. Multi-Farm Architecture
-*   **Context Switching:** Users can create multiple farm entities and switch between them instantly.
-*   **Data Isolation:** All employees, travels, expenses, and debts are scoped to the specific active farm.
+### 📊 Dashboard & Analytics
+*   **Real-time Overview:** Live tracking of Total Tonnage, Revenue, and Active Debts.
+*   **Visual Analytics:**
+    *   Daily Tonnage Production (Area Chart).
+    *   Revenue vs. Expense trends.
+    *   Employee Earnings Performance (Sorted Alphabetically).
+*   **AI Assistant:** Context-aware chatbot that answers questions like *"Who is the most productive driver?"* or *"Summarize last week's expenses"*.
 
-### 2. Core Operations
-*   **Travel/Logistics Tracking:**
-    *   Record trips with details: Date, Ticket #, Land Source, Plate #, Destination, Driver, Tons, Bags.
-    *   **Auto-calculation:** Computes Gross Income (Sugarcane + Molasses) vs Expenses (Wages, Tips, Tolls).
-    *   **Attendance:** Link specific workers to specific trips for automated wage calculation.
-*   **Calculator:**
-    *   Standalone tool for computing sugarcane/molasses receipts.
-    *   Generates downloadable PNG receipts with authorized signatures.
-    *   Maintains a local history of calculations.
+### 🚛 Logistics & Operations
+*   **Travel Tracking:** Detailed logging of every truck trip including Ticket #, Land Source, Destination, Plate #, and Weight.
+*   **Automated Financials:** Auto-calculates Gross Income (Sugarcane + Molasses) and Net Income per trip after deducting wages, driver tips, and tolls.
+*   **Workforce Attendance:** Links specific employee groups to trips for automated, pro-rated wage distribution.
 
-### 3. Financial Management
-*   **Debts & Advances:** Track employee cash advances and mark them as paid/unpaid.
-*   **Loan Management:**
-    *   Complex loan tracking with payment history and usage logs.
-    *   **Renewal Logic:** Ability to renew loans, resetting balances while tracking historical payments.
-*   **Expenses:** Track general farm operational costs unrelated to specific trips.
+### 💰 Financial Management
+*   **Smart Wages:** Complex logic handling **Staff** (shared pot based on tons) vs. **Drivers** (base wage per trip + tips).
+*   **Debt Tracker:** Manage cash advances with "Mark as Paid" functionality and history.
+*   **Loan System:** Robust loan management with tracking for:
+    *   Partial payments.
+    *   Usage logs (deductions).
+    *   **Loan Renewal:** Ability to rollover loans with balance resets.
+*   **Calculator Tool:** A standalone utility for computing miller receipts with downloadable, signature-ready PNG exports.
 
-### 4. Workforce Management
-*   **Employees:** Manage Staff and Drivers.
-*   **Groups:** Create work gangs/groups with specific wage rates per ton.
-*   **Driver Rates:** Configure specific base wages per trip for drivers.
+### 👥 Workforce & Assets
+*   **Employee Management:** Categorize workers (Driver, Staff, Helper).
+*   **Group System:** Manage labor gangs with specific wage rates per ton.
+*   **Asset Registry:** Database for Lands, Truck Plates, and Mill Destinations (with color coding).
 
-### 5. Analytics & Reporting
-*   **Dashboard:**
-    *   Real-time cards for Revenue, Tonnage, Active Debt.
-    *   Visual charts: Daily Production (Area), Revenue vs Expenses, Employee Performance.
-*   **Summaries:**
-    *   **Employee Report:** Days worked, total wages earned, absenteeism tracking.
-    *   **Group/Land Report:** Profitability analysis per route or land source.
-    *   **Printable Reports:** Clean, formatted data ready for printing or PDF export.
+### ⚙️ Data Management
+*   **Backup & Restore:** Export full farm data to JSON or Backup directly to Google Drive.
+*   **Dark Mode:** UI support for low-light environments.
 
-### 6. AI Assistant
-*   **JFarm AI:** An embedded chatbot context-aware of the current farm's database. Users can ask natural language questions like *"Who is the highest earning driver?"* or *"What is my net profit for last week?"*.
+## 💻 Installation & Setup
 
----
+### Prerequisites
+*   Node.js (v18+)
+*   Firebase Project (Firestore & Auth enabled)
+*   Google Cloud Project (for Gemini API)
+
+### 1. Clone & Install
+```bash
+git clone https://github.com/yourusername/jfarm.git
+cd jfarm
+npm install
+```
+
+### 2. Environment Configuration
+Create a `.env` file in the root directory:
+```env
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+# ... other firebase config
+API_KEY=your_google_gemini_api_key
+```
+
+### 3. Run Development Server
+```bash
+npm run dev
+```
+
+### 4. Build for Production
+```bash
+npm run build
+```
+
+## 🖥️ Desktop Application (Electron)
+
+JFarm includes an Electron wrapper to run as a native desktop application.
+
+```bash
+# Run in Electron Development Mode
+npm run electron:dev
+
+# Build Desktop App
+npm run electron:build
+```
 
 ## 📱 Android App Generation Prompt
 
@@ -118,3 +163,7 @@ Use these exact interfaces for the mobile app to ensure compatibility with the e
 # SPECIFIC INSTRUCTION
 Start by setting up the `FarmContext` and the Expo Router structure. Then, build the **Dashboard** screen first, ensuring the Firestore connection works. Please provide the code for `app/_layout.tsx`, `context/FarmContext.tsx`, and `app/(tabs)/index.tsx`.
 ```
+
+## 📄 License
+
+Private / Proprietary software for JFarm Operations.

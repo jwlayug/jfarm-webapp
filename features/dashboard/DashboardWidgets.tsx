@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { ArrowUp, ArrowDown, MoreVertical, ExternalLink, Filter, Download, FileText, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, Brush
+  PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, Brush, LabelList
 } from 'recharts';
 import { Travel, Debt, Employee, Land } from '../../types';
 
@@ -251,52 +251,73 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => (
   </div>
 );
 
-export const EmployeePerformanceChart: React.FC<EmployeePerformanceProps> = ({ data }) => (
-  <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-6 flex-1 flex flex-col h-[500px]">
-    <div className="flex justify-between items-center mb-4 shrink-0">
-       <div>
-           <h3 className="font-bold text-sage-700 border-l-4 border-sage-400 pl-3 text-lg">Employee Financials</h3>
-           <p className="text-xs text-gray-400 mt-1 pl-4">Earnings (Green) vs Debt (Red)</p>
-       </div>
-       {/* Legend */}
-       <div className="flex gap-3 text-xs">
-          <div className="flex items-center gap-1"><div className="w-3 h-3 bg-[#778873] rounded-sm"></div> Earnings</div>
-          <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-400 rounded-sm"></div> Debt</div>
-       </div>
+export const EmployeePerformanceChart: React.FC<EmployeePerformanceProps> = ({ data }) => {
+  // Dynamic height based on data length, minimum 300px
+  const chartHeight = Math.max(data.length * 60, 300);
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-6 flex-1 flex flex-col">
+      <div className="flex justify-between items-center mb-4 shrink-0">
+         <div>
+             <h3 className="font-bold text-sage-700 border-l-4 border-sage-400 pl-3 text-lg">Employee Financials</h3>
+             <p className="text-xs text-gray-400 mt-1 pl-4">Earnings (Green) vs Debt (Red)</p>
+         </div>
+         {/* Legend */}
+         <div className="flex gap-3 text-xs">
+            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-[#778873] rounded-sm"></div> Earnings</div>
+            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-400 rounded-sm"></div> Debt</div>
+         </div>
+      </div>
+      
+      <div style={{ height: `${chartHeight}px`, width: '100%' }}>
+         <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#F3F4F6" />
+               <XAxis type="number" hide />
+               <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{fill: '#4B5563', fontSize: 11, fontWeight: 600}} 
+                  width={100}
+                  interval={0} // Show all ticks
+               />
+               <Tooltip 
+                  cursor={{fill: '#F1F3E0', opacity: 0.5}}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  formatter={(value: number, name: string) => {
+                      if (name === 'Earnings') return [`₱${value.toLocaleString()}`, 'Earnings'];
+                      if (name === 'Debt') return [`₱${value.toLocaleString()}`, 'Debt'];
+                      return [value, name];
+                  }}
+               />
+               <Bar dataKey="totalWage" name="Earnings" stackId="a" fill="#778873" radius={[0, 0, 0, 0]} barSize={30}>
+                  <LabelList 
+                    dataKey="totalWage" 
+                    position="center" 
+                    fill="white" 
+                    fontSize={10} 
+                    fontWeight="bold"
+                    formatter={(val: number) => val > 0 ? `₱${val.toLocaleString()}` : ''}
+                  />
+               </Bar>
+               <Bar dataKey="unpaidDebt" name="Debt" stackId="a" fill="#F87171" radius={[0, 4, 4, 0]} barSize={30}>
+                  <LabelList 
+                    dataKey="unpaidDebt" 
+                    position="center" 
+                    fill="white" 
+                    fontSize={10} 
+                    fontWeight="bold"
+                    formatter={(val: number) => val > 0 ? `₱${val.toLocaleString()}` : ''}
+                  />
+               </Bar>
+            </BarChart>
+         </ResponsiveContainer>
+      </div>
     </div>
-    
-    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-       <div style={{ height: `${Math.max(data.length * 60, 300)}px` }}>
-           <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
-                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#F3F4F6" />
-                 <XAxis type="number" hide />
-                 <YAxis 
-                    dataKey="name" 
-                    type="category" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{fill: '#4B5563', fontSize: 11, fontWeight: 600}} 
-                    width={100}
-                    interval={0} // Show all ticks
-                 />
-                 <Tooltip 
-                    cursor={{fill: '#F1F3E0', opacity: 0.5}}
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                    formatter={(value: number, name: string) => {
-                        if (name === 'Earnings') return [`₱${value.toLocaleString()}`, 'Earnings'];
-                        if (name === 'Debt') return [`₱${value.toLocaleString()}`, 'Debt'];
-                        return [value, name];
-                    }}
-                 />
-                 <Bar dataKey="totalWage" name="Earnings" stackId="a" fill="#778873" radius={[0, 0, 0, 0]} barSize={20} />
-                 <Bar dataKey="unpaidDebt" name="Debt" stackId="a" fill="#F87171" radius={[0, 4, 4, 0]} barSize={20} />
-              </BarChart>
-           </ResponsiveContainer>
-       </div>
-    </div>
-  </div>
-);
+  );
+};
 
 export const DistributionChart: React.FC<PieChartProps> = ({ data, totalValue, title }) => (
   <div className="bg-white rounded-xl shadow-sm border border-sage-100 p-5">

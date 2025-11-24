@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Sparkles, Loader2, Minimize2 } from 'lucide-react';
 import { useFarmData } from '../context/FarmContext';
@@ -41,7 +40,7 @@ const Assistant: React.FC = () => {
   // --- DATA PREPARATION ---
   // We format the data to be token-efficient before sending to Gemini
   const prepareContext = () => {
-    const stats = AnalyticsEngine.getGlobalStats(travels, groups, employees, debts);
+    const stats = AnalyticsEngine.getGlobalStats(travels, groups, employees, debts, drivers);
     
     // Enhanced Employee Context with Wages
     const empContext = employees.map(e => {

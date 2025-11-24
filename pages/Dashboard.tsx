@@ -36,13 +36,13 @@ const Dashboard: React.FC = () => {
   // --- ANALYTICS (Processed via OOP Engine) ---
   
   const globalStats = useMemo(() => 
-    AnalyticsEngine.getGlobalStats(travels, groups, employees, debts), 
-    [travels, groups, employees, debts]
+    AnalyticsEngine.getGlobalStats(travels, groups, employees, debts, drivers), 
+    [travels, groups, employees, debts, drivers]
   );
 
   const revenueChartData = useMemo(() => 
-      AnalyticsEngine.getDailyRevenueData(travels, groups), 
-    [travels, groups]
+      AnalyticsEngine.getDailyRevenueData(travels, groups, drivers), 
+    [travels, groups, drivers]
   );
 
   const tonnageChartData = useMemo(() => 
@@ -61,8 +61,8 @@ const Dashboard: React.FC = () => {
   );
 
   const expenseData = useMemo(() => 
-    AnalyticsEngine.getExpenseBreakdown(travels, groups, expenses),
-    [travels, groups, expenses]
+    AnalyticsEngine.getExpenseBreakdown(travels, groups, expenses, drivers),
+    [travels, groups, expenses, drivers]
   );
 
   const groupPerformanceData = useMemo(() => 
@@ -72,7 +72,7 @@ const Dashboard: React.FC = () => {
 
   const employeePerformance = useMemo(() => {
     return AnalyticsEngine.getEmployeeEarningsReport(employees, travels, groups, debts, drivers)
-      .sort((a, b) => b.totalWage - a.totalWage)
+      .sort((a, b) => a.name.localeCompare(b.name))
       .map(emp => ({ 
         name: emp.name, 
         totalWage: emp.totalWage, 
@@ -206,6 +206,7 @@ const Dashboard: React.FC = () => {
         lands={lands}
         plates={plates}
         destinations={destinations}
+        drivers={drivers}
       />
     </>
   );

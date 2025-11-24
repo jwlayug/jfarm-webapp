@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { X, Briefcase, TrendingUp, TrendingDown, Users, ArrowLeft, CheckCircle2, XCircle, ChevronRight, Receipt, Scale } from 'lucide-react';
-import { Travel, Group, Employee } from '../../types';
+import { Travel, Group, Employee, Driver } from '../../types';
 
 interface TravelSummaryModalProps {
   isOpen: boolean;
@@ -8,6 +9,7 @@ interface TravelSummaryModalProps {
   travels: Travel[];
   group: Group | null;
   employees: Employee[];
+  drivers: Driver[];
 }
 
 const TravelSummaryModal: React.FC<TravelSummaryModalProps> = ({
@@ -15,7 +17,8 @@ const TravelSummaryModal: React.FC<TravelSummaryModalProps> = ({
   onClose,
   travels,
   group,
-  employees
+  employees,
+  drivers
 }) => {
   const [activeTab, setActiveTab] = useState<'employee' | 'travel'>('employee');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
@@ -66,8 +69,19 @@ const TravelSummaryModal: React.FC<TravelSummaryModalProps> = ({
 
       // Expenses
       const otherExp = travel.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
-      const tip = travel.driverTip || 0;
-      const totalExpenses = totalWagePot + tip + otherExp;
+      
+      // Driver Calculations
+      const driverTip = travel.driverTip || 0;
+      
+      // Find Driver Base Wage
+      const driverRec = drivers.find(d => d.employeeId === travel.driver);
+      const driverBaseWage = driverRec?.wage || 0;
+      
+      // Driver Wage Left (Base - Tip)
+      const driverWageLeft = Math.max(0, driverBaseWage - driverTip);
+
+      // Total Expenses now includes Driver Wage Left (as it's a cost to the farm owner)
+      const totalExpenses = totalWagePot + driverTip + driverWageLeft + otherExp;
 
       const netIncome = totalIncome - totalExpenses;
 
@@ -77,7 +91,8 @@ const TravelSummaryModal: React.FC<TravelSummaryModalProps> = ({
           molassesIncome,
           totalExpenses,
           totalWagePot,
-          tip,
+          driverTip,
+          driverWageLeft,
           otherExp,
           netIncome,
           staffCount,
@@ -92,6 +107,7 @@ const TravelSummaryModal: React.FC<TravelSummaryModalProps> = ({
   let totalMolassesIncome = 0;
   let totalWagesPaid = 0;
   let totalDriverTips = 0;
+  let totalDriverWageLeft = 0;
   let totalOtherExpenses = 0;
 
   travels.forEach(travel => {
@@ -102,7 +118,8 @@ const TravelSummaryModal: React.FC<TravelSummaryModalProps> = ({
     totalIncome += metrics.totalIncome;
 
     totalWagesPaid += metrics.totalWagePot;
-    totalDriverTips += metrics.tip;
+    totalDriverTips += metrics.driverTip;
+    totalDriverWageLeft += metrics.driverWageLeft;
     totalOtherExpenses += metrics.otherExp;
     totalExpenses += metrics.totalExpenses;
 
@@ -262,7 +279,11 @@ const TravelSummaryModal: React.FC<TravelSummaryModalProps> = ({
                     </div>
                     <div className="flex justify-between items-center bg-white p-2 rounded border border-red-100">
                         <span className="text-gray-600">Driver Tip</span>
-                        <span className="font-medium text-red-700">{formatCurrency(metrics.tip)}</span>
+                        <span className="font-medium text-red-700">{formatCurrency(metrics.driverTip)}</span>
+                    </div>
+                    <div className="flex justify-between items-center bg-white p-2 rounded border border-red-100">
+                        <span className="text-gray-600">Driver Wage Left</span>
+                        <span className="font-medium text-red-700">{formatCurrency(metrics.driverWageLeft)}</span>
                     </div>
                      {travel.expenses && travel.expenses.length > 0 && (
                          <div className="space-y-1">
@@ -453,6 +474,10 @@ const TravelSummaryModal: React.FC<TravelSummaryModalProps> = ({
                          <div className="flex justify-between items-center">
                             <span className="text-gray-600">Driver Tips</span>
                             <span className="font-medium text-red-500">-{formatCurrency(totalDriverTips)}</span>
+                         </div>
+                         <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Driver Wage Left</span>
+                            <span className="font-medium text-red-500">-{formatCurrency(totalDriverWageLeft)}</span>
                          </div>
                          <div className="flex justify-between items-center">
                             <span className="text-gray-600">Other Expenses</span>

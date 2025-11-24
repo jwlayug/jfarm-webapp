@@ -200,12 +200,25 @@ const Summaries: React.FC = () => {
     }), { totalDays: 0, totalWages: 0, totalDebts: 0 });
   }, [employeeSummaryData]);
 
+  // Data specifically for the Print View (Excluding Drivers for Employee Tab)
+  const printEmployeeData = useMemo(() => {
+      return employeeSummaryData.filter(e => e.type !== 'Driver');
+  }, [employeeSummaryData]);
+
+  const printEmpAggregates = useMemo(() => {
+    return printEmployeeData.reduce((acc, curr) => ({
+      totalDays: acc.totalDays + curr.daysWorked,
+      totalWages: acc.totalWages + curr.totalWage,
+      totalDebts: acc.totalDebts + curr.unpaidDebt
+    }), { totalDays: 0, totalWages: 0, totalDebts: 0 });
+  }, [printEmployeeData]);
+
   // 2. Group/Land Summary
   const travelSummaryData = useMemo(() => {
     return filteredTravels
       .filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .map(travel => {
-       const financials = AnalyticsEngine.calculateTravelFinancials(travel, groups);
+       const financials = AnalyticsEngine.calculateTravelFinancials(travel, groups, drivers);
        return {
          ...travel,
          ...financials
@@ -224,7 +237,7 @@ const Summaries: React.FC = () => {
        // Sort Descending (Latest First)
        return getDate(b.name, b.date) - getDate(a.name, a.date);
     });
-  }, [filteredTravels, groups, searchQuery]);
+  }, [filteredTravels, groups, drivers, searchQuery]);
 
   const travelAggregates = useMemo(() => {
     return travelSummaryData.reduce((acc, curr) => ({
@@ -585,21 +598,21 @@ const Summaries: React.FC = () => {
                 <div className="grid grid-cols-3 gap-4 mb-6">
                     <EmployeePrintCard 
                         label="Total Days Worked" 
-                        value={empAggregates.totalDays} 
+                        value={printEmpAggregates.totalDays} 
                         colorBg="bg-blue-50" 
                         colorText="text-blue-600" 
                         icon={Calendar} 
                     />
                     <EmployeePrintCard 
                         label="Total Wages Paid" 
-                        value={formatCurrency(empAggregates.totalWages)} 
+                        value={formatCurrency(printEmpAggregates.totalWages)} 
                         colorBg="bg-emerald-50" 
                         colorText="text-emerald-700" 
                         icon={DollarSign} 
                     />
                     <EmployeePrintCard 
                         label="Unpaid Debt" 
-                        value={formatCurrency(empAggregates.totalDebts)} 
+                        value={formatCurrency(printEmpAggregates.totalDebts)} 
                         colorBg="bg-amber-50" 
                         colorText="text-amber-700" 
                         icon={CreditCard} 
@@ -683,7 +696,7 @@ const Summaries: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {activeTab === 'employee' ? employeeSummaryData.map((emp, i) => (
+                        {activeTab === 'employee' ? printEmployeeData.map((emp, i) => (
                           <tr key={emp.id} className="bg-white">
                             <td className="px-6 py-4 text-center">
                               <span className=" text-blue-700 px-2.5 py-1 rounded-lg font-bold text-xs whitespace-nowrap">

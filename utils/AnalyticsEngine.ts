@@ -8,7 +8,7 @@ import { Travel, Group, Employee, Debt, Land, Driver, OtherExpense, Destination 
  */
 export class AnalyticsEngine {
   
-  static calculateTravelFinancials(travel: Travel, groups: Group[]) {
+  static calculateTravelFinancials(travel: Travel, groups: Group[], drivers: Driver[]) {
     // Income
     const sugarIncome = (travel.sugarcane_price || 0) * (travel.bags || 0);
     const molassesIncome = (travel.molasses_price || 0) * (travel.molasses || 0);
@@ -19,13 +19,26 @@ export class AnalyticsEngine {
     const wageRate = group?.wage || 0;
     const wageExpense = (travel.tons || 0) * wageRate;
     const otherExpenses = travel.expenses?.reduce((sum, e) => sum + e.amount, 0) || 0;
-    const totalExpenses = wageExpense + (travel.driverTip || 0) + otherExpenses;
+
+    // Driver Cost Logic
+    // Total cost is the Base Wage. 
+    // If Tip > Base Wage, then the cost is the Tip (assuming Tip replaces wage in that edge case, or effectively owner pays the higher amount).
+    // Standard logic based on user request: Driver Wage Left = Base - Tip.
+    // So Total Driver Cost = Tip + (Base - Tip) = Base.
+    // We use Math.max(Base, Tip) to handle cases where Tip exceeds Base.
+    const driverRec = drivers.find(d => d.employeeId === travel.driver);
+    const driverBaseWage = driverRec?.wage || 0;
+    const driverTip = travel.driverTip || 0;
+    const driverCost = Math.max(driverBaseWage, driverTip);
+
+    const totalExpenses = wageExpense + driverCost + otherExpenses;
 
     return {
       totalIncome,
       totalExpenses,
       netIncome: totalIncome - totalExpenses,
-      wageRate
+      wageRate,
+      driverCost
     };
   }
 
@@ -33,13 +46,14 @@ export class AnalyticsEngine {
     travels: Travel[], 
     groups: Group[], 
     employees: Employee[], 
-    debts: Debt[]
+    debts: Debt[],
+    drivers: Driver[]
   ) {
     let totalRevenue = 0;
     let totalTons = 0;
 
     travels.forEach(t => {
-      const { totalIncome } = this.calculateTravelFinancials(t, groups);
+      const { totalIncome } = this.calculateTravelFinancials(t, groups, drivers);
       totalRevenue += totalIncome;
       totalTons += (t.tons || 0);
     });
@@ -55,7 +69,7 @@ export class AnalyticsEngine {
     };
   }
 
-  static getDailyRevenueData(travels: Travel[], groups: Group[]) {
+  static getDailyRevenueData(travels: Travel[], groups: Group[], drivers: Driver[]) {
     const dailyMap: Record<string, { income: number, expense: number, dateVal: number }> = {};
 
     travels.forEach(t => {
@@ -79,7 +93,7 @@ export class AnalyticsEngine {
           dailyMap[dateKey] = { income: 0, expense: 0, dateVal };
       }
 
-      const { totalIncome, totalExpenses } = this.calculateTravelFinancials(t, groups);
+      const { totalIncome, totalExpenses } = this.calculateTravelFinancials(t, groups, drivers);
       
       dailyMap[dateKey].income += totalIncome;
       dailyMap[dateKey].expense += totalExpenses;
@@ -195,7 +209,8 @@ export class AnalyticsEngine {
            daysWorked++;
            const driverConf = drivers.find(d => d.employeeId === emp.id);
            const base = driverConf?.wage || 0;
-           totalWage += (base - (travel.driverTip || 0));
+           // Use full base wage for earnings report (Gross Earnings)
+           totalWage += base;
         }
       });
 
@@ -212,16 +227,22 @@ export class AnalyticsEngine {
     }).filter(e => e.daysWorked > 0 || e.unpaidDebt > 0);
   }
 
-  static getExpenseBreakdown(travels: Travel[], groups: Group[], otherExpenses: OtherExpense[]) {
+  static getExpenseBreakdown(travels: Travel[], groups: Group[], otherExpenses: OtherExpense[], drivers: Driver[]) {
     let wages = 0;
-    let tips = 0;
+    let driverPay = 0;
     let travelOps = 0;
     let generalOps = otherExpenses.reduce((sum, e) => sum + e.amount, 0);
 
     travels.forEach(t => {
        const g = groups.find(grp => grp.id === t.groupId);
        wages += (t.tons || 0) * (g?.wage || 0);
-       tips += (t.driverTip || 0);
+       
+       // Calculate Driver Pay (Base or Tip, whichever is effectively the cost)
+       const driverRec = drivers.find(d => d.employeeId === t.driver);
+       const driverBaseWage = driverRec?.wage || 0;
+       const driverTip = t.driverTip || 0;
+       driverPay += Math.max(driverBaseWage, driverTip);
+
        travelOps += t.expenses?.reduce((s,e) => s + e.amount, 0) || 0;
     });
 
@@ -230,7 +251,7 @@ export class AnalyticsEngine {
     // Filter out zero values
     return [
       { name: 'Wages', value: wages, color: '#778873' },
-      { name: 'Tips', value: tips, color: '#A1BC98' },
+      { name: 'Driver Pay', value: driverPay, color: '#A1BC98' }, // Renamed from Tips to Driver Pay
       { name: 'Operations', value: totalOps, color: '#D2DCB6' }
     ].filter(i => i.value > 0);
   }

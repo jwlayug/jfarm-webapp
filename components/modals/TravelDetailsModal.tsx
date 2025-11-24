@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Map, User, Truck, TrendingUp, TrendingDown, DollarSign, Calendar, Navigation, FileText } from 'lucide-react';
-import { Travel, Group, Employee, Land, Plate, Destination } from '../../types';
+import { Travel, Group, Employee, Land, Plate, Destination, Driver } from '../../types';
 
 interface TravelDetailsModalProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ interface TravelDetailsModalProps {
   lands: Land[];
   plates: Plate[];
   destinations: Destination[];
+  drivers: Driver[];
 }
 
 const TravelDetailsModal: React.FC<TravelDetailsModalProps> = ({
@@ -21,7 +22,8 @@ const TravelDetailsModal: React.FC<TravelDetailsModalProps> = ({
   employees,
   lands,
   plates,
-  destinations
+  destinations,
+  drivers
 }) => {
   if (!isOpen || !travel) return null;
 
@@ -40,8 +42,17 @@ const TravelDetailsModal: React.FC<TravelDetailsModalProps> = ({
   const groupWageRate = group?.wage || 0;
   const wageExpense = (travel.tons || 0) * groupWageRate;
   const driverTip = travel.driverTip || 0;
+  
+  // Driver Wage Calculation
+  const driverRec = drivers.find(d => d.employeeId === travel.driver);
+  const driverBaseWage = driverRec?.wage || 0;
+  // Calculate wage left (Base - Tip), ensuring it doesn't go below zero if tip > base
+  const driverWageLeft = Math.max(0, driverBaseWage - driverTip);
+
   const otherExpenses = travel.expenses?.reduce((sum, e) => sum + e.amount, 0) || 0;
-  const totalExpenses = wageExpense + driverTip + otherExpenses;
+  
+  // Total Expenses = Wages + Driver Tip + Driver Wage Left + Other
+  const totalExpenses = wageExpense + driverTip + driverWageLeft + otherExpenses;
   
   const netIncome = totalIncome - totalExpenses;
 
@@ -160,6 +171,10 @@ const TravelDetailsModal: React.FC<TravelDetailsModalProps> = ({
                       <div className="flex justify-between">
                          <span className="text-gray-600">Driver Tip</span>
                          <span className="font-medium text-red-700">-{formatCurrency(driverTip)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                         <span className="text-gray-600">Driver Wage Left</span>
+                         <span className="font-medium text-red-700">-{formatCurrency(driverWageLeft)}</span>
                       </div>
                       {travel.expenses && travel.expenses.map((exp, i) => (
                           <div key={i} className="flex justify-between">
